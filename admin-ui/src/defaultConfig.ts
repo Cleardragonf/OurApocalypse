@@ -1,0 +1,563 @@
+import type { ApocalypseConfig, EntityWeight, MobProperties, UiConnectionSettings } from './types';
+
+export const defaultConnectionSettings: UiConnectionSettings = {
+  modApiBaseUrl: import.meta.env.VITE_DEFAULT_MOD_API_URL || 'http://127.0.0.1:8766',
+  adminToken: import.meta.env.VITE_DEFAULT_ADMIN_TOKEN || 'change-me-now',
+  pollSeconds: 5,
+  autoApplyLive: true
+};
+
+
+function mobProperties(patch: Partial<MobProperties> = {}): MobProperties {
+  const properties: MobProperties = {
+    enabled: false,
+    maxHealthMode: 'FIXED',
+    maxHealth: 0,
+    maxHealthMin: 0,
+    maxHealthMax: 0,
+    attackDamageMode: 'FIXED',
+    attackDamage: 0,
+    attackDamageMin: 0,
+    attackDamageMax: 0,
+    movementSpeedMode: 'FIXED',
+    movementSpeed: 0,
+    movementSpeedMin: 0,
+    movementSpeedMax: 0,
+    followRangeMode: 'FIXED',
+    followRange: 0,
+    followRangeMin: 0,
+    followRangeMax: 0,
+    armorMode: 'FIXED',
+    armor: 0,
+    armorMin: 0,
+    armorMax: 0,
+    armorToughnessMode: 'FIXED',
+    armorToughness: 0,
+    armorToughnessMin: 0,
+    armorToughnessMax: 0,
+    knockbackResistanceMode: 'FIXED',
+    knockbackResistance: 0,
+    knockbackResistanceMin: 0,
+    knockbackResistanceMax: 0,
+    stepHeightMode: 'FIXED',
+    stepHeight: 0,
+    stepHeightMin: 0,
+    stepHeightMax: 0,
+    persistent: false,
+    customName: '',
+    targetPlayers: true,
+    breakBlocks: true,
+    placeBlocks: true,
+    bridgeGaps: true,
+    explodingArrows: false,
+    explodingArrowChance: 0,
+    explodingArrowPower: 2,
+    explodingArrowBreakBlocks: true,
+    creeperWallExplosions: false,
+    creeperWallExplosionChance: 0,
+    creeperWallExplosionPower: 2.8,
+    creeperWallExplosionCooldownTicks: 100,
+    endermanTeleportPlayers: false,
+    endermanTeleportChance: 0,
+    endermanTeleportRadius: 12,
+    endermanTeleportCooldownTicks: 160,
+    spiderWebPlayers: false,
+    spiderWebChance: 0,
+    spiderWebCooldownTicks: 100,
+    ...patch
+  };
+
+  const alignRangeDefaults = (valueKey: keyof MobProperties, minKey: keyof MobProperties, maxKey: keyof MobProperties) => {
+    const raw = patch as Record<string, unknown>;
+    const fixed = properties[valueKey];
+    if (typeof fixed !== 'number') return;
+    if (typeof raw[minKey as string] !== 'number') {
+      (properties as Record<string, unknown>)[minKey as string] = fixed;
+    }
+    if (typeof raw[maxKey as string] !== 'number') {
+      (properties as Record<string, unknown>)[maxKey as string] = fixed;
+    }
+  };
+
+  alignRangeDefaults('maxHealth', 'maxHealthMin', 'maxHealthMax');
+  alignRangeDefaults('attackDamage', 'attackDamageMin', 'attackDamageMax');
+  alignRangeDefaults('movementSpeed', 'movementSpeedMin', 'movementSpeedMax');
+  alignRangeDefaults('followRange', 'followRangeMin', 'followRangeMax');
+  alignRangeDefaults('armor', 'armorMin', 'armorMax');
+  alignRangeDefaults('armorToughness', 'armorToughnessMin', 'armorToughnessMax');
+  alignRangeDefaults('knockbackResistance', 'knockbackResistanceMin', 'knockbackResistanceMax');
+  alignRangeDefaults('stepHeight', 'stepHeightMin', 'stepHeightMax');
+
+  return properties;
+}
+
+export const legacyEntityWeights: EntityWeight[] = [
+  { entity: 'minecraft:zombie', weight: 22, minDay: 1, spawnChance: 1, enabled: true },
+  { entity: 'minecraft:skeleton', weight: 18, minDay: 1, spawnChance: 1, enabled: true },
+  { entity: 'minecraft:spider', weight: 14, minDay: 1, spawnChance: 1, enabled: true },
+  { entity: 'minecraft:creeper', weight: 10, minDay: 2, spawnChance: 1, enabled: true, properties: mobProperties({ creeperWallExplosions: true, creeperWallExplosionChance: 0.12, creeperWallExplosionPower: 2.5 }) },
+  { entity: 'minecraft:husk', weight: 10, minDay: 3, spawnChance: 1, enabled: true },
+  { entity: 'minecraft:drowned', weight: 8, minDay: 3, spawnChance: 1, enabled: true },
+  { entity: 'minecraft:stray', weight: 8, minDay: 5, spawnChance: 1, enabled: true },
+  { entity: 'minecraft:cave_spider', weight: 8, minDay: 5, spawnChance: 1, enabled: true },
+  { entity: 'minecraft:slime', weight: 6, minDay: 7, spawnChance: 1, enabled: true },
+  { entity: 'minecraft:enderman', weight: 7, minDay: 8, spawnChance: 1, enabled: true },
+  { entity: 'minecraft:witch', weight: 7, minDay: 10, spawnChance: 1, enabled: true },
+  { entity: 'minecraft:pillager', weight: 8, minDay: 12, spawnChance: 1, enabled: true },
+  { entity: 'minecraft:vindicator', weight: 5, minDay: 14, spawnChance: 1, enabled: true },
+  { entity: 'minecraft:phantom', weight: 10, minDay: 14, spawnChance: 1, enabled: true },
+  { entity: 'minecraft:magma_cube', weight: 5, minDay: 16, spawnChance: 1, enabled: true },
+  { entity: 'minecraft:blaze', weight: 8, minDay: 18, spawnChance: 1, enabled: true },
+  { entity: 'minecraft:wither_skeleton', weight: 6, minDay: 20, spawnChance: 1, enabled: true },
+  { entity: 'minecraft:zoglin', weight: 5, minDay: 22, spawnChance: 1, enabled: true },
+  { entity: 'minecraft:ghast', weight: 30, minDay: 24, spawnChance: 1, enabled: true }
+];
+
+export const defaultConfig: ApocalypseConfig = {
+  enabled: true,
+  difficultyMode: 'REAL_MONTH_DAY',
+  manualDifficultyDay: 1,
+  adminApi: {
+    enabled: true,
+    host: '127.0.0.1',
+    port: 8766,
+    adminToken: 'change-me-now',
+    requireToken: true
+  },
+  waves: {
+    enabled: true,
+    onlyAtNight: true,
+    tickCheckInterval: 100,
+    activeMode: 'NIGHT_PROFILES',
+    nightProfiles: [
+      {
+        id: 'early-pressure',
+        name: 'Nights 1-9: Early Pressure',
+        enabled: true,
+        minDay: 1,
+        maxDay: 9,
+        weight: 80,
+        minWaves: 1,
+        maxWaves: 2,
+        minMobs: 6,
+        maxMobs: 16,
+        spawnRadiusMin: 24,
+        spawnRadiusMax: 52,
+        maxSpawnAttemptsPerMob: 10,
+        spawnAroundEachPlayer: true,
+        avoidCreativeAndSpectator: true,
+        announceWaves: true
+      },
+      {
+        id: 'midnight-surge',
+        name: 'Nights 10-19: Midnight Surge',
+        enabled: true,
+        minDay: 10,
+        maxDay: 19,
+        weight: 60,
+        minWaves: 2,
+        maxWaves: 4,
+        minMobs: 18,
+        maxMobs: 42,
+        spawnRadiusMin: 28,
+        spawnRadiusMax: 60,
+        maxSpawnAttemptsPerMob: 12,
+        spawnAroundEachPlayer: true,
+        avoidCreativeAndSpectator: true,
+        announceWaves: true
+      },
+      {
+        id: 'blood-moon-wave',
+        name: 'Nights 10-30: Rare Blood Moon Wave',
+        enabled: true,
+        minDay: 10,
+        maxDay: 30,
+        weight: 12,
+        minWaves: 4,
+        maxWaves: 7,
+        minMobs: 45,
+        maxMobs: 95,
+        spawnRadiusMin: 30,
+        spawnRadiusMax: 70,
+        maxSpawnAttemptsPerMob: 16,
+        spawnAroundEachPlayer: true,
+        avoidCreativeAndSpectator: true,
+        announceWaves: true
+      },
+      {
+        id: 'endgame-onslaught',
+        name: 'Nights 20-30: Endgame Onslaught',
+        enabled: true,
+        minDay: 20,
+        maxDay: 30,
+        weight: 45,
+        minWaves: 3,
+        maxWaves: 6,
+        minMobs: 35,
+        maxMobs: 85,
+        spawnRadiusMin: 30,
+        spawnRadiusMax: 72,
+        maxSpawnAttemptsPerMob: 14,
+        spawnAroundEachPlayer: true,
+        avoidCreativeAndSpectator: true,
+        announceWaves: true
+      }
+    ],
+    minWavesDay1: 1,
+    maxWavesDay1: 1,
+    minWavesDay30: 4,
+    maxWavesDay30: 6,
+    minMobsDay1: 5,
+    maxMobsDay1: 12,
+    minMobsDay30: 35,
+    maxMobsDay30: 75,
+    spawnRadiusMin: 24,
+    spawnRadiusMax: 56,
+    maxSpawnAttemptsPerMob: 12,
+    spawnAroundEachPlayer: true,
+    avoidCreativeAndSpectator: true,
+    announceWaves: true
+  },
+  entitySpawning: {
+    activeMode: 'NIGHT_PROFILES',
+    failedChanceBehavior: 'SKIP_SPAWN',
+    legacyWeights: legacyEntityWeights,
+    nightProfiles: [
+      {
+        id: 'overworld-pack',
+        name: 'Nights 1-12: Overworld Pack',
+        enabled: true,
+        minDay: 1,
+        maxDay: 12,
+        weight: 75,
+        weights: [
+          { entity: 'minecraft:zombie', weight: 25, minDay: 1, spawnChance: 1, enabled: true },
+          { entity: 'minecraft:skeleton', weight: 20, minDay: 1, spawnChance: 1, enabled: true, properties: mobProperties({ explodingArrows: true, explodingArrowChance: 0.12, explodingArrowPower: 1.8 }) },
+          { entity: 'minecraft:spider', weight: 15, minDay: 1, spawnChance: 1, enabled: true, properties: mobProperties({ spiderWebPlayers: true, spiderWebChance: 0.1 }) },
+          { entity: 'minecraft:creeper', weight: 10, minDay: 2, spawnChance: 1, enabled: true, properties: mobProperties({ creeperWallExplosions: true, creeperWallExplosionChance: 0.12, creeperWallExplosionPower: 2.5 }) },
+          { entity: 'minecraft:husk', weight: 8, minDay: 3, spawnChance: 1, enabled: true },
+          { entity: 'minecraft:stray', weight: 6, minDay: 5, spawnChance: 1, enabled: true }
+        ]
+      },
+      {
+        id: 'raider-night',
+        name: 'Nights 10-22: Raider Night',
+        enabled: true,
+        minDay: 10,
+        maxDay: 22,
+        weight: 25,
+        weights: [
+          { entity: 'minecraft:pillager', weight: 35, minDay: 10, spawnChance: 1, enabled: true, properties: mobProperties({ explodingArrows: true, explodingArrowChance: 0.08, explodingArrowPower: 1.6 }) },
+          { entity: 'minecraft:vindicator', weight: 18, minDay: 14, spawnChance: 1, enabled: true },
+          { entity: 'minecraft:witch', weight: 14, minDay: 10, spawnChance: 1, enabled: true },
+          { entity: 'minecraft:zombie', weight: 18, minDay: 1, spawnChance: 1, enabled: true, properties: mobProperties({ enabled: true, maxHealth: 28, attackDamage: 4, movementSpeed: 0.27, followRange: 40, armor: 2, stepHeightMode: 'RANGED', stepHeightMin: 0.6, stepHeightMax: 1.05 }) },
+          { entity: 'minecraft:skeleton', weight: 15, minDay: 1, spawnChance: 1, enabled: true, properties: mobProperties({ explodingArrows: true, explodingArrowChance: 0.18, explodingArrowPower: 2 }) }
+        ]
+      },
+      {
+        id: 'nether-breach',
+        name: 'Nights 16-30: Nether Breach',
+        enabled: true,
+        minDay: 16,
+        maxDay: 30,
+        weight: 35,
+        weights: [
+          { entity: 'minecraft:blaze', weight: 20, minDay: 16, spawnChance: 1, enabled: true },
+          { entity: 'minecraft:magma_cube', weight: 15, minDay: 16, spawnChance: 1, enabled: true },
+          { entity: 'minecraft:wither_skeleton', weight: 12, minDay: 20, spawnChance: 1, enabled: true },
+          { entity: 'minecraft:zoglin', weight: 10, minDay: 22, spawnChance: 1, enabled: true },
+          { entity: 'minecraft:ghast', weight: 30, minDay: 24, spawnChance: 1, enabled: true }
+        ]
+      },
+      {
+        id: 'endgame-chaos',
+        name: 'Nights 24-30: Endgame Chaos',
+        enabled: true,
+        minDay: 24,
+        maxDay: 30,
+        weight: 18,
+        weights: [
+          { entity: 'minecraft:ghast', weight: 30, minDay: 24, spawnChance: 1, enabled: true },
+          { entity: 'minecraft:enderman', weight: 20, minDay: 8, spawnChance: 1, enabled: true, properties: mobProperties({ endermanTeleportPlayers: true, endermanTeleportChance: 0.16, endermanTeleportRadius: 14 }) },
+          { entity: 'minecraft:blaze', weight: 18, minDay: 18, spawnChance: 1, enabled: true },
+          { entity: 'minecraft:wither_skeleton', weight: 16, minDay: 20, spawnChance: 1, enabled: true, properties: mobProperties({ enabled: true, maxHealth: 36, attackDamage: 7, movementSpeed: 0.32, followRange: 48, armor: 4, stepHeight: 1.0, persistent: true }) },
+          { entity: 'minecraft:witch', weight: 12, minDay: 10, spawnChance: 1, enabled: true }
+        ]
+      }
+    ]
+  },
+  behavior: {
+    enabled: true,
+    mobTickInterval: 20,
+    targetRangeDay1: 24,
+    targetRangeDay30: 80,
+    navigationSpeedDay1: 1,
+    navigationSpeedDay30: 1.45,
+    breakBlocks: true,
+    breakBlocksMinDay: 8,
+    maxBreakHardnessDay1: 0.6,
+    maxBreakHardnessDay30: 6,
+    dropBrokenBlocks: false,
+    placeBlocks: true,
+    placeBlocksMinDay: 12,
+    bridgeGaps: true,
+    bridgeMinDay: 16,
+    placementBlock: 'minecraft:cobblestone',
+    placementBlocks: [
+      { block: 'minecraft:cobblestone', weight: 80, minDay: 1, enabled: true },
+      { block: 'minecraft:dirt', weight: 35, minDay: 1, enabled: true },
+      { block: 'minecraft:netherrack', weight: 25, minDay: 16, enabled: true },
+      { block: 'minecraft:blackstone', weight: 10, minDay: 22, enabled: true }
+    ],
+    protectSpawnRadius: 24,
+    protectedBlocks: [
+      'minecraft:bedrock',
+      'minecraft:obsidian',
+      'minecraft:crying_obsidian',
+      'minecraft:end_portal_frame',
+      'minecraft:end_portal',
+      'minecraft:nether_portal',
+      'minecraft:command_block',
+      'minecraft:chain_command_block',
+      'minecraft:repeating_command_block',
+      'minecraft:barrier'
+    ]
+  },
+  cleanup: {
+    enabled: true,
+    trackPlacedBlocks: true,
+    rollbackOnlyIfBlockStillMatches: true,
+    rollbackOnServerStart: false,
+    maxLedgerEntries: 20000,
+    maxRollbackPerRequest: 2000
+  },
+  drops: {
+    enabled: true,
+    overrideVanillaDrops: false,
+    activeMode: 'NIGHT_PROFILES',
+    nightProfiles: [
+      {
+        id: 'early-scraps',
+        name: 'Nights 1-9: Scraps',
+        enabled: true,
+        minDay: 1,
+        maxDay: 9,
+        weight: 70,
+        overrideVanillaDrops: false,
+        rules: [
+          { entity: 'minecraft:zombie', item: 'minecraft:iron_nugget', minCount: 1, maxCount: 2, chance: 0.2, minDay: 1, enabled: true, ourMagicRewardEnabled: false, ourMagicRewardChance: 1, ourMagicRewardTargetMode: 'KILLER', ourMagicRewardMinExperience: 2, ourMagicRewardMaxExperience: 4, ourMagicRewardReason: 'early-scraps-zombie' },
+          { entity: 'minecraft:skeleton', item: 'minecraft:arrow', minCount: 2, maxCount: 6, chance: 0.45, minDay: 1, enabled: true },
+          { entity: '*', item: 'minecraft:rotten_flesh', minCount: 1, maxCount: 3, chance: 0.08, minDay: 1, enabled: true }
+        ]
+      },
+      {
+        id: 'midnight-supplies',
+        name: 'Nights 10-19: Supplies',
+        enabled: true,
+        minDay: 10,
+        maxDay: 19,
+        weight: 60,
+        overrideVanillaDrops: false,
+        rules: [
+          { entity: '*', item: 'minecraft:bread', minCount: 1, maxCount: 2, chance: 0.07, minDay: 10, enabled: true },
+          { entity: 'minecraft:witch', item: 'minecraft:redstone', minCount: 1, maxCount: 4, chance: 0.25, minDay: 10, enabled: true },
+          { entity: 'minecraft:creeper', item: 'minecraft:gunpowder', minCount: 1, maxCount: 5, chance: 0.6, minDay: 10, enabled: true }
+        ]
+      },
+      {
+        id: 'blood-moon-rare',
+        name: 'Nights 10-30: Rare Blood Moon',
+        enabled: true,
+        minDay: 10,
+        maxDay: 30,
+        weight: 12,
+        overrideVanillaDrops: false,
+        rules: [
+          { entity: '*', item: 'minecraft:emerald', minCount: 1, maxCount: 2, chance: 0.1, minDay: 10, enabled: true },
+          { entity: '*', item: 'minecraft:diamond', minCount: 1, maxCount: 1, chance: 0.015, minDay: 20, enabled: true },
+          { entity: 'minecraft:ghast', item: 'minecraft:ghast_tear', minCount: 1, maxCount: 3, chance: 0.85, minDay: 20, enabled: true }
+        ]
+      },
+      {
+        id: 'endgame-relics',
+        name: 'Nights 20-30: Endgame Relics',
+        enabled: true,
+        minDay: 20,
+        maxDay: 30,
+        weight: 35,
+        overrideVanillaDrops: false,
+        rules: [
+          { entity: '*', item: 'minecraft:golden_apple', minCount: 1, maxCount: 1, chance: 0.025, minDay: 20, enabled: true },
+          { entity: 'minecraft:wither_skeleton', item: 'minecraft:wither_skeleton_skull', minCount: 1, maxCount: 1, chance: 0.08, minDay: 20, enabled: true },
+          { entity: '*', item: 'minecraft:experience_bottle', minCount: 1, maxCount: 4, chance: 0.15, minDay: 20, enabled: true }
+        ]
+      }
+    ],
+    rules: [
+      { entity: 'minecraft:zombie', item: 'minecraft:iron_nugget', minCount: 1, maxCount: 3, chance: 0.25, minDay: 5, enabled: true },
+      { entity: 'minecraft:skeleton', item: 'minecraft:arrow', minCount: 2, maxCount: 8, chance: 0.5, minDay: 1, enabled: true },
+      { entity: 'minecraft:creeper', item: 'minecraft:gunpowder', minCount: 1, maxCount: 4, chance: 0.65, minDay: 1, enabled: true },
+      { entity: 'minecraft:ghast', item: 'minecraft:ghast_tear', minCount: 1, maxCount: 2, chance: 0.8, minDay: 20, enabled: true },
+      { entity: '*', item: 'minecraft:emerald', minCount: 1, maxCount: 1, chance: 0.02, minDay: 25, enabled: true }
+    ]
+  },
+  clearLag: {
+    enabled: false,
+    intervalSeconds: 300,
+    warningSeconds: 30,
+    maxEntitiesPerRun: 500,
+    announceWarning: true,
+    announceCompletion: true,
+    removeDroppedItems: true,
+    removeExperienceOrbs: true,
+    removeProjectiles: false,
+    removeEmptyVehicles: false,
+    itemWhitelist: [
+      'minecraft:nether_star',
+      'minecraft:dragon_egg'
+    ],
+    warningMessage: 'Clear Lag will remove loose entities in {seconds} seconds.',
+    completionMessage: 'Clear Lag removed {count} loose entities.'
+  },
+  scheduledEvents: {
+    enabled: true,
+    events: [
+      {
+        id: 'first-night-welcome',
+        name: 'First Night Warning',
+        enabled: true,
+        minDay: 1,
+        maxDay: 1,
+        chance: 1,
+        cooldownTicks: 0,
+        runOncePerNight: true,
+        eventKind: 'COMMAND_SEQUENCE',
+        itemDropParty: {
+          targetMode: 'ALL_PLAYERS',
+          targetPlayerName: '',
+          centerMode: 'TARGET_PLAYER',
+          x: 0,
+          y: 80,
+          z: 0,
+          radius: 18,
+          durationTicks: 600,
+          intervalTicks: 20,
+          maxItemsPerInterval: 12,
+          announce: true,
+          items: [
+            { id: 'drop-party-bread', enabled: true, item: 'minecraft:bread', weight: 60, minCount: 1, maxCount: 2, chance: 1 },
+            { id: 'drop-party-arrow', enabled: true, item: 'minecraft:arrow', weight: 35, minCount: 4, maxCount: 12, chance: 1 }
+          ]
+        },
+        experienceFarm: {
+          targetMode: 'ALL_PLAYERS',
+          targetPlayerName: '',
+          provider: 'OURMAGIC_API',
+          amountPerInterval: 5,
+          durationTicks: 1200,
+          intervalTicks: 100,
+          multiplier: 1.5,
+          reason: 'apocalypse-event',
+          announce: true
+        },
+        steps: [
+          { id: 'step-welcome-message', type: 'COMMAND', commandKey: 'say', commandArgs: { message: 'The first apocalypse night has begun.' }, command: '/say The first apocalypse night has begun.' },
+          { id: 'step-welcome-wait', type: 'WAIT', waitTicks: 40 },
+          { id: 'step-welcome-title', type: 'COMMAND', command: '/title @a title {\"text\":\"Survive the night\",\"color\":\"red\"}' },
+          { id: 'step-welcome-stop', type: 'STOP' }
+        ]
+      },
+      {
+        id: 'supply-drop-party',
+        name: 'Supply Drop Party',
+        enabled: false,
+        minDay: 3,
+        maxDay: 30,
+        chance: 0.25,
+        cooldownTicks: 24000,
+        runOncePerNight: true,
+        eventKind: 'ITEM_DROP_PARTY',
+        itemDropParty: {
+          targetMode: 'RANDOM_PLAYER',
+          targetPlayerName: '',
+          centerMode: 'TARGET_PLAYER',
+          x: 0,
+          y: 90,
+          z: 0,
+          radius: 24,
+          durationTicks: 800,
+          intervalTicks: 20,
+          maxItemsPerInterval: 10,
+          announce: true,
+          items: [
+            { id: 'drop-party-bread', enabled: true, item: 'minecraft:bread', weight: 60, minCount: 1, maxCount: 2, chance: 1 },
+            { id: 'drop-party-iron', enabled: true, item: 'minecraft:iron_ingot', weight: 20, minCount: 1, maxCount: 3, chance: 0.8 },
+            { id: 'drop-party-diamond', enabled: true, item: 'minecraft:diamond', weight: 5, minCount: 1, maxCount: 1, chance: 0.35 }
+          ]
+        },
+        experienceFarm: {
+          targetMode: 'ALL_PLAYERS',
+          targetPlayerName: '',
+          provider: 'OURMAGIC_API',
+          amountPerInterval: 5,
+          durationTicks: 1200,
+          intervalTicks: 100,
+          multiplier: 1.5,
+          reason: 'apocalypse-event',
+          announce: true
+        },
+        steps: []
+      },
+      {
+        id: 'xp-farm-boost',
+        name: 'Experience Farm Boost',
+        enabled: false,
+        minDay: 5,
+        maxDay: 30,
+        chance: 0.2,
+        cooldownTicks: 24000,
+        runOncePerNight: true,
+        eventKind: 'EXPERIENCE_FARM',
+        itemDropParty: {
+          targetMode: 'ALL_PLAYERS',
+          targetPlayerName: '',
+          centerMode: 'TARGET_PLAYER',
+          x: 0,
+          y: 80,
+          z: 0,
+          radius: 18,
+          durationTicks: 600,
+          intervalTicks: 20,
+          maxItemsPerInterval: 12,
+          announce: true,
+          items: []
+        },
+        experienceFarm: {
+          targetMode: 'ALL_PLAYERS',
+          targetPlayerName: '',
+          provider: 'OURMAGIC_API',
+          amountPerInterval: 8,
+          durationTicks: 2400,
+          intervalTicks: 100,
+          multiplier: 2,
+          reason: 'experience-farm-event',
+          announce: true
+        },
+        steps: []
+      }
+    ]
+  },
+  integrations: {
+    ourMagic: {
+      enabled: false,
+      baseUrl: 'http://127.0.0.1:8767',
+      giveExperiencePath: '/api/experience/give',
+      token: '',
+      tokenHeader: 'X-Admin-Token',
+      timeoutMillis: 3000
+    }
+  },
+  entityWeights: legacyEntityWeights,
+  entityBlacklist: ['minecraft:ender_dragon', 'minecraft:wither', 'minecraft:warden', 'minecraft:elder_guardian'],
+  allowedDimensions: ['minecraft:overworld']
+};
