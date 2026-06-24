@@ -622,3 +622,5 @@ OurMagic API settings are edited in **Admin → Config → Core Config**, beside
 ```
 
 The Drops page only controls per-rule reward rows. The OurMagic base URL, header, token, path, and timeout are centralized in the Admin → Config tab so they are not repeated inside Drops. Server-side calls to the final OurMagic `giveEXP` endpoint can be wired after that endpoint contract is finalized.
+#   O u r A p o c a l y p s e  
+ 
