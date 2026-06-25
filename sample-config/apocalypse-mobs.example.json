@@ -1495,11 +1495,9 @@
   "integrations": {
     "ourMagic": {
       "enabled": false,
-      "baseUrl": "http://127.0.0.1:8767",
-      "giveExperiencePath": "/api/experience/give",
-      "token": "",
-      "tokenHeader": "X-Admin-Token",
-      "timeoutMillis": 3000
+      "host": "127.0.0.1",
+      "port": 8767,
+      "token": "change-me-now"
     }
   },
   "entityWeights": [

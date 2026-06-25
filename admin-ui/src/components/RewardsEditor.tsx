@@ -20,7 +20,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material';
-import type { ApocalypseConfig, RewardRule, RewardTargetMode, RewardType } from '../types';
+import type { ApocalypseConfig, RewardRule, RewardsConfig, RewardTargetMode, RewardType } from '../types';
 
 type Props = {
   config: ApocalypseConfig;
@@ -93,24 +93,28 @@ function defaultRewardRule(): RewardRule {
   };
 }
 
+function ensureRewardsConfig(draft: ApocalypseConfig): RewardsConfig {
+  draft.rewards = {
+    enabled: true,
+    rules: [],
+    ...(draft.rewards ?? {}),
+  };
+  return draft.rewards;
+}
+
 export default function RewardsEditor({ config, updateConfig }: Props) {
   const rewards = config.rewards ?? { enabled: true, rules: [] };
   const rules = rewards.rules ?? [];
   const ourMagic = config.integrations?.ourMagic ?? {
     enabled: false,
-    baseUrl: 'http://127.0.0.1:8767',
-    giveExperiencePath: '/api/experience/give',
+    host: '127.0.0.1',
+    port: 8767,
     token: '',
-    tokenHeader: 'X-Admin-Token',
-    timeoutMillis: 3000,
   };
 
   const updateRewards = (patch: Partial<ApocalypseConfig['rewards']>) => {
     updateConfig((draft) => {
-      draft.rewards = {
-        ...(draft.rewards ?? { enabled: true, rules: [] }),
-        ...patch,
-      };
+      draft.rewards = { ...ensureRewardsConfig(draft), ...patch };
     });
   };
 
@@ -128,7 +132,8 @@ export default function RewardsEditor({ config, updateConfig }: Props) {
 
   const updateRule = (ruleId: string, patch: Partial<RewardRule>) => {
     updateConfig((draft) => {
-      draft.rewards.rules = (draft.rewards.rules ?? []).map((rule) =>
+      const rewardsConfig = ensureRewardsConfig(draft);
+      rewardsConfig.rules = rewardsConfig.rules.map((rule) =>
         rule.id === ruleId ? { ...rule, ...patch } : rule,
       );
     });
@@ -136,13 +141,15 @@ export default function RewardsEditor({ config, updateConfig }: Props) {
 
   const addRule = () => {
     updateConfig((draft) => {
-      draft.rewards.rules = [...(draft.rewards.rules ?? []), defaultRewardRule()];
+      const rewardsConfig = ensureRewardsConfig(draft);
+      rewardsConfig.rules = [...rewardsConfig.rules, defaultRewardRule()];
     });
   };
 
   const removeRule = (ruleId: string) => {
     updateConfig((draft) => {
-      draft.rewards.rules = (draft.rewards.rules ?? []).filter((rule) => rule.id !== ruleId);
+      const rewardsConfig = ensureRewardsConfig(draft);
+      rewardsConfig.rules = rewardsConfig.rules.filter((rule) => rule.id !== ruleId);
     });
   };
 
@@ -152,14 +159,14 @@ export default function RewardsEditor({ config, updateConfig }: Props) {
         <Box>
           <Typography variant="h6" fontWeight={900}>Reward Rules</Typography>
           <Typography color="text.secondary" variant="body2">
-            Configure XP-style rewards separately from item drops. These are stored in config now and are ready for the OurMagic giveEXP integration.
+            Configure XP-style rewards separately from item drops. These are stored in config now and sent through the Our Magic gateway.
           </Typography>
         </Box>
         <Button startIcon={<AddIcon />} variant="contained" onClick={addRule}>Add Reward</Button>
       </Stack>
 
       <Alert severity="info">
-        Item drops stay under Drops. This page is for non-item rewards, especially calling the future OurMagic giveEXP endpoint.
+        Item drops stay under Drops. This page is for non-item rewards sent through the Our Magic gateway.
       </Alert>
 
       <Card variant="outlined">
@@ -174,19 +181,13 @@ export default function RewardsEditor({ config, updateConfig }: Props) {
                 />
               </Grid>
               <Grid item xs={12} md={3}>
-                <TextField fullWidth label="Base URL" value={ourMagic.baseUrl} onChange={(event) => updateOurMagic({ baseUrl: event.target.value })} />
-              </Grid>
-              <Grid item xs={12} md={3}>
-                <TextField fullWidth label="giveEXP Path" value={ourMagic.giveExperiencePath} onChange={(event) => updateOurMagic({ giveExperiencePath: event.target.value })} />
+                <TextField fullWidth label="Host" value={ourMagic.host} onChange={(event) => updateOurMagic({ host: event.target.value })} />
               </Grid>
               <Grid item xs={12} md={2}>
-                <TextField fullWidth label="Token Header" value={ourMagic.tokenHeader} onChange={(event) => updateOurMagic({ tokenHeader: event.target.value })} />
-              </Grid>
-              <Grid item xs={12} md={1}>
-                <TextField fullWidth type="number" label="Timeout" value={ourMagic.timeoutMillis} onChange={(event) => updateOurMagic({ timeoutMillis: numberValue(event.target.value, ourMagic.timeoutMillis) })} />
+                <TextField fullWidth type="number" label="Port" value={ourMagic.port} onChange={(event) => updateOurMagic({ port: numberValue(event.target.value, ourMagic.port) })} />
               </Grid>
               <Grid item xs={12}>
-                <TextField fullWidth label="Token" value={ourMagic.token} onChange={(event) => updateOurMagic({ token: event.target.value })} helperText="Optional. Leave blank if OurMagic does not require an admin token." />
+                <TextField fullWidth label="Token" value={ourMagic.token} onChange={(event) => updateOurMagic({ token: event.target.value })} helperText="Sent as x-mod-api-key by Apocalypse when the gateway requires a mod API key." />
               </Grid>
             </Grid>
           </Stack>
@@ -280,7 +281,7 @@ export default function RewardsEditor({ config, updateConfig }: Props) {
 
       <Divider />
       <Typography color="text.secondary" variant="body2">
-        Execution note: the UI/config is ready. The actual server-side call to OurMagic can be wired once the final giveEXP endpoint contract is available.
+        Execution note: Apocalypse sends rewards to the hardcoded Our Magic gateway route on this host and port.
       </Typography>
     </Stack>
   );

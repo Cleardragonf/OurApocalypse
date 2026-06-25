@@ -75,6 +75,51 @@ function deepMerge<T>(base: T, patch: unknown): T {
   return (patch ?? base) as T;
 }
 
+function migrateOurMagicSettings(input: Partial<ApocalypseConfig>): Partial<ApocalypseConfig> {
+  const integrations = input.integrations as Record<string, unknown> | undefined;
+  const ourMagic = integrations?.ourMagic as Record<string, unknown> | undefined;
+  if (!ourMagic) return input;
+
+  const migrated = { ...ourMagic };
+  const legacyUrl = typeof migrated.gatewayUrl === 'string'
+    ? migrated.gatewayUrl
+    : typeof migrated.baseUrl === 'string'
+      ? `${migrated.baseUrl.replace(/\/+$/, '')}/${String(migrated.giveExperiencePath || 'api/mod/our-magic/experience').replace(/^\/+/, '')}`
+      : '';
+
+  if (legacyUrl && typeof migrated.host !== 'string') {
+    try {
+      const url = new URL(legacyUrl);
+      migrated.host = url.hostname || defaultConfig.integrations.ourMagic.host;
+      migrated.port = url.port ? Number(url.port) : defaultConfig.integrations.ourMagic.port;
+    } catch {
+      migrated.host = defaultConfig.integrations.ourMagic.host;
+      migrated.port = defaultConfig.integrations.ourMagic.port;
+    }
+  }
+
+  delete migrated.gatewayUrl;
+  delete migrated.baseUrl;
+  delete migrated.giveExperiencePath;
+  delete migrated.tokenHeader;
+  delete migrated.timeoutMillis;
+
+  const migratedOurMagic: ApocalypseConfig['integrations']['ourMagic'] = {
+    enabled: typeof migrated.enabled === 'boolean' ? migrated.enabled : defaultConfig.integrations.ourMagic.enabled,
+    host: typeof migrated.host === 'string' && migrated.host.trim() ? migrated.host : defaultConfig.integrations.ourMagic.host,
+    port: typeof migrated.port === 'number' && Number.isFinite(migrated.port) ? migrated.port : defaultConfig.integrations.ourMagic.port,
+    token: typeof migrated.token === 'string' ? migrated.token : defaultConfig.integrations.ourMagic.token,
+  };
+
+  return {
+    ...input,
+    integrations: {
+      ...input.integrations,
+      ourMagic: migratedOurMagic,
+    },
+  };
+}
+
 
 function defaultMobProperties(): MobProperties {
   return {
@@ -204,7 +249,7 @@ function normalizeEntityWeightRows(rows: EntityWeight[] | undefined): EntityWeig
 }
 
 function normalizeConfig(input: unknown): ApocalypseConfig {
-  const parsed = input && typeof input === 'object' ? input as Partial<ApocalypseConfig> : {};
+  const parsed = migrateOurMagicSettings(input && typeof input === 'object' ? input as Partial<ApocalypseConfig> : {});
   const merged = deepMerge(defaultConfig, parsed);
   if (!('entitySpawning' in parsed) && Array.isArray(parsed.entityWeights) && parsed.entityWeights.length > 0) {
     merged.entitySpawning.legacyWeights = parsed.entityWeights;
@@ -663,10 +708,9 @@ export default function App() {
             <Typography variant="h6">OurMagic Integration Settings</Typography>
             <Grid container spacing={2}>
               <Grid item xs={12} md={3}><FormControlLabel control={<Switch checked={config.integrations.ourMagic.enabled} onChange={(event) => updateConfig((draft) => { draft.integrations.ourMagic.enabled = event.target.checked; })} />} label="OurMagic Enabled" /></Grid>
-              <Grid item xs={12} md={3}><TextField fullWidth label="Host" value={config.integrations.ourMagic.baseUrl} onChange={(event) => updateConfig((draft) => { draft.integrations.ourMagic.baseUrl = event.target.value; })} /></Grid>
-              <Grid item xs={12} md={2}><TextField fullWidth label="Path" value={config.integrations.ourMagic.giveExperiencePath} onChange={(event) => updateConfig((draft) => { draft.integrations.ourMagic.giveExperiencePath = event.target.value; })} /></Grid>
+              <Grid item xs={12} md={3}><TextField fullWidth label="Host" value={config.integrations.ourMagic.host} onChange={(event) => updateConfig((draft) => { draft.integrations.ourMagic.host = event.target.value; })} /></Grid>
+              <Grid item xs={12} md={2}><TextField fullWidth type="number" label="Port" value={config.integrations.ourMagic.port} onChange={(event) => updateConfig((draft) => { draft.integrations.ourMagic.port = numberValue(event.target.value, draft.integrations.ourMagic.port); })} /></Grid>
               <Grid item xs={12} md={3}><TextField fullWidth label="Token" value={config.integrations.ourMagic.token} onChange={(event) => updateConfig((draft) => { draft.integrations.ourMagic.token = event.target.value; })} /></Grid>
-              <Grid item xs={12} md={1}><TextField fullWidth label="Header" value={config.integrations.ourMagic.tokenHeader} onChange={(event) => updateConfig((draft) => { draft.integrations.ourMagic.tokenHeader = event.target.value; })} /></Grid>
             </Grid>
           </Stack></CardContent></Card>
         )}

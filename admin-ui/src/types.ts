@@ -182,11 +182,9 @@ export type RewardsConfig = {
 export type IntegrationsConfig = {
   ourMagic: {
     enabled: boolean;
-    baseUrl: string;
-    giveExperiencePath: string;
+    host: string;
+    port: number;
     token: string;
-    tokenHeader: string;
-    timeoutMillis: number;
   };
 };
 

@@ -601,19 +601,14 @@ public class ApocalypseConfig {
 
     public static class OurMagicSettings {
         public boolean enabled = false;
-        public String baseUrl = "http://127.0.0.1:8767";
-        public String giveExperiencePath = "/api/experience/give";
-        public String token = "";
-        public String tokenHeader = "X-Admin-Token";
-        public int timeoutMillis = 3000;
+        public String host = "127.0.0.1";
+        public int port = 8767;
+        public String token = "change-me-now";
 
         public void sanitize() {
-            if (baseUrl == null || baseUrl.isBlank()) baseUrl = "http://127.0.0.1:8767";
-            if (giveExperiencePath == null || giveExperiencePath.isBlank()) giveExperiencePath = "/api/experience/give";
-            if (!giveExperiencePath.startsWith("/")) giveExperiencePath = "/" + giveExperiencePath;
+            if (host == null || host.isBlank()) host = "127.0.0.1";
+            port = Math.max(1, Math.min(65535, port));
             if (token == null) token = "";
-            if (tokenHeader == null || tokenHeader.isBlank()) tokenHeader = "X-Admin-Token";
-            timeoutMillis = Math.max(250, timeoutMillis);
         }
     }
 

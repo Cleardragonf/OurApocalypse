@@ -1,0 +1,27 @@
+modLoader="javafml"
+loaderVersion="[47,)"
+license="MIT"
+issueTrackerURL=""
+
+[[mods]]
+modId="apocalypse_mobs"
+version="1.7.0"
+displayName="Apocalypse Mobs"
+authors="Christopher Warner"
+description='''Server-side hostile mob wave director with day-based difficulty, mob griefing, drops, REST live config, and mob-placed block rollback.'''
+# Allows players without this server-side mod to connect.
+displayTest="IGNORE_SERVER_VERSION"
+
+[[dependencies.apocalypse_mobs]]
+modId="forge"
+mandatory=true
+versionRange="[47.4.1,)"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.apocalypse_mobs]]
+modId="minecraft"
+mandatory=true
+versionRange="[1.20.1,1.20.2)"
+ordering="NONE"
+side="BOTH"
