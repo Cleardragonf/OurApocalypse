@@ -19,6 +19,7 @@ public class ApocalypseConfig {
     public DropSettings drops = new DropSettings();
     public ScheduledEventSettings scheduledEvents = new ScheduledEventSettings();
     public ClearLagSettings clearLag = new ClearLagSettings();
+    public EconomySettings economy = new EconomySettings();
     public IntegrationSettings integrations = new IntegrationSettings();
     public CleanupSettings cleanup = new CleanupSettings();
 
@@ -37,6 +38,7 @@ public class ApocalypseConfig {
         if (drops == null) drops = new DropSettings();
         if (scheduledEvents == null) scheduledEvents = new ScheduledEventSettings();
         if (clearLag == null) clearLag = new ClearLagSettings();
+        if (economy == null) economy = new EconomySettings();
         if (integrations == null) integrations = new IntegrationSettings();
         if (cleanup == null) cleanup = new CleanupSettings();
         if (entityWeights == null) entityWeights = defaultEntityWeights();
@@ -50,6 +52,7 @@ public class ApocalypseConfig {
         drops.sanitize();
         scheduledEvents.sanitize();
         clearLag.sanitize();
+        economy.sanitize();
         integrations.sanitize();
         cleanup.sanitize();
         for (EntityWeight weight : entityWeights) if (weight != null) weight.sanitize();
@@ -347,6 +350,249 @@ public class ApocalypseConfig {
             result.add("minecraft:repeating_command_block");
             result.add("minecraft:barrier");
             return result;
+        }
+    }
+
+
+    public static class EconomySettings {
+        public boolean enabled = true;
+        public String currencyName = "Dollars";
+        public double startingBalance = 0.0D;
+        public PayWhileActiveSettings payWhileActive = new PayWhileActiveSettings();
+        public EconomyDeathCostSettings deathCosts = new EconomyDeathCostSettings();
+        public EconomyKillRewardSettings killRewards = new EconomyKillRewardSettings();
+        public EconomyMarketSettings market = new EconomyMarketSettings();
+
+        public void sanitize() {
+            if (currencyName == null || currencyName.isBlank()) currencyName = "Dollars";
+            startingBalance = Math.max(0.0D, startingBalance);
+            if (payWhileActive == null) payWhileActive = new PayWhileActiveSettings();
+            if (deathCosts == null) deathCosts = new EconomyDeathCostSettings();
+            if (killRewards == null) killRewards = new EconomyKillRewardSettings();
+            if (market == null) market = new EconomyMarketSettings();
+            payWhileActive.sanitize();
+            deathCosts.sanitize();
+            killRewards.sanitize();
+            market.sanitize();
+        }
+    }
+
+    public static class PayWhileActiveSettings {
+        public boolean enabled = true;
+        public double amountPerHour = 100.0D;
+        public int payoutIntervalSeconds = 60;
+        public boolean afkStopsTimer = true;
+        public int afkTimeoutSeconds = 300;
+
+        public void sanitize() {
+            amountPerHour = Math.max(0.0D, amountPerHour);
+            payoutIntervalSeconds = Math.max(5, payoutIntervalSeconds);
+            afkTimeoutSeconds = Math.max(10, afkTimeoutSeconds);
+        }
+    }
+
+    public static class EconomyDeathCostSettings {
+        public boolean enabled = true;
+        public String defaultMode = "FIXED";
+        public double defaultAmount = 50.0D;
+        public double defaultPercent = 5.0D;
+        public List<EconomyDeathCostRule> rules = defaultRules();
+
+        public void sanitize() {
+            if (!"PERCENT_BALANCE".equals(defaultMode)) defaultMode = "FIXED";
+            defaultAmount = Math.max(0.0D, defaultAmount);
+            defaultPercent = clamp(defaultPercent, 0.0D, 100.0D);
+            if (rules == null) rules = defaultRules();
+            for (EconomyDeathCostRule rule : rules) if (rule != null) rule.sanitize();
+        }
+
+        public static List<EconomyDeathCostRule> defaultRules() {
+            List<EconomyDeathCostRule> result = new ArrayList<>();
+            result.add(new EconomyDeathCostRule("death-any", "ANY", "FIXED", 50.0D, 5.0D, "death-cost", true));
+            result.add(new EconomyDeathCostRule("death-explosion", "minecraft:explosion", "FIXED", 75.0D, 8.0D, "explosion-death-cost", true));
+            result.add(new EconomyDeathCostRule("death-void", "minecraft:void", "PERCENT_BALANCE", 0.0D, 15.0D, "void-death-cost", true));
+            return result;
+        }
+    }
+
+    public static class EconomyDeathCostRule {
+        public String id = "death-cost";
+        public boolean enabled = true;
+        public String deathCause = "ANY";
+        public String mode = "FIXED";
+        public double amount = 50.0D;
+        public double percent = 5.0D;
+        public String reason = "death-cost";
+
+        public EconomyDeathCostRule() {}
+
+        public EconomyDeathCostRule(String id, String deathCause, String mode, double amount, double percent, String reason, boolean enabled) {
+            this.id = id;
+            this.deathCause = deathCause;
+            this.mode = mode;
+            this.amount = amount;
+            this.percent = percent;
+            this.reason = reason;
+            this.enabled = enabled;
+        }
+
+        public void sanitize() {
+            if (id == null || id.isBlank()) id = "death-cost";
+            if (deathCause == null || deathCause.isBlank()) deathCause = "ANY";
+            if (!"PERCENT_BALANCE".equals(mode)) mode = "FIXED";
+            amount = Math.max(0.0D, amount);
+            percent = clamp(percent, 0.0D, 100.0D);
+            if (reason == null) reason = "";
+        }
+    }
+
+    public static class EconomyKillRewardSettings {
+        public boolean enabled = true;
+        public double defaultMinAmount = 1.0D;
+        public double defaultMaxAmount = 3.0D;
+        public double defaultChance = 1.0D;
+        public List<EconomyEntityRewardRule> rules = defaultRules();
+
+        public void sanitize() {
+            defaultMinAmount = Math.max(0.0D, defaultMinAmount);
+            defaultMaxAmount = Math.max(defaultMinAmount, defaultMaxAmount);
+            defaultChance = clamp(defaultChance, 0.0D, 1.0D);
+            if (rules == null) rules = defaultRules();
+            for (EconomyEntityRewardRule rule : rules) if (rule != null) rule.sanitize();
+        }
+
+        public static List<EconomyEntityRewardRule> defaultRules() {
+            List<EconomyEntityRewardRule> result = new ArrayList<>();
+            result.add(new EconomyEntityRewardRule("reward-zombie", "minecraft:zombie", 1, 1.0D, 5.0D, 8.0D, "KILLER", "zombie-kill", true));
+            result.add(new EconomyEntityRewardRule("reward-skeleton", "minecraft:skeleton", 1, 1.0D, 6.0D, 10.0D, "KILLER", "skeleton-kill", true));
+            result.add(new EconomyEntityRewardRule("reward-creeper", "minecraft:creeper", 2, 1.0D, 12.0D, 18.0D, "KILLER", "creeper-kill", true));
+            result.add(new EconomyEntityRewardRule("reward-ghast", "minecraft:ghast", 20, 1.0D, 35.0D, 60.0D, "KILLER", "ghast-kill", true));
+            EconomyEntityRewardRule playerLoot = new EconomyEntityRewardRule("reward-player-wallet-loot", "minecraft:player", 1, 1.0D, 0.0D, 0.0D, "KILLER", "player-wallet-loot", true);
+            playerLoot.lootVictimWalletEnabled = true;
+            playerLoot.lootVictimWalletMode = "PERCENT_BALANCE";
+            playerLoot.lootVictimWalletPercent = 10.0D;
+            playerLoot.lootVictimWalletMaxPercentAmount = 500.0D;
+            result.add(playerLoot);
+            return result;
+        }
+    }
+
+    public static class EconomyEntityRewardRule {
+        public String id = "kill-reward";
+        public boolean enabled = true;
+        public String entity = "minecraft:zombie";
+        public int minDay = 1;
+        public double chance = 1.0D;
+        public double minAmount = 1.0D;
+        public double maxAmount = 3.0D;
+        public String targetMode = "KILLER";
+        public String participantRewardMode = "FULL_TO_EACH_PARTICIPANT";
+        public boolean lootVictimWalletEnabled = false;
+        public String lootVictimWalletMode = "PERCENT_BALANCE";
+        public double lootVictimWalletMinAmount = 0.0D;
+        public double lootVictimWalletMaxAmount = 0.0D;
+        public double lootVictimWalletPercent = 10.0D;
+        public double lootVictimWalletMaxPercentAmount = 500.0D;
+        public String reason = "economy-kill-reward";
+
+        public EconomyEntityRewardRule() {}
+
+        public EconomyEntityRewardRule(String id, String entity, int minDay, double chance, double minAmount, double maxAmount, String targetMode, String reason, boolean enabled) {
+            this(id, entity, minDay, chance, minAmount, maxAmount, targetMode, "FULL_TO_EACH_PARTICIPANT", reason, enabled);
+        }
+
+        public EconomyEntityRewardRule(String id, String entity, int minDay, double chance, double minAmount, double maxAmount, String targetMode, String participantRewardMode, String reason, boolean enabled) {
+            this.id = id;
+            this.entity = entity;
+            this.minDay = minDay;
+            this.chance = chance;
+            this.minAmount = minAmount;
+            this.maxAmount = maxAmount;
+            this.targetMode = targetMode;
+            this.participantRewardMode = participantRewardMode;
+            this.reason = reason;
+            this.enabled = enabled;
+        }
+
+        public void sanitize() {
+            if (id == null || id.isBlank()) id = "kill-reward";
+            if (entity == null || entity.isBlank()) entity = "minecraft:zombie";
+            minDay = clamp(minDay, 1, 30);
+            chance = clamp(chance, 0.0D, 1.0D);
+            minAmount = Math.max(0.0D, minAmount);
+            maxAmount = Math.max(minAmount, maxAmount);
+            if (!"NEAREST_PLAYER".equals(targetMode) && !"ALL_PLAYERS".equals(targetMode) && !"ALL_PARTICIPANTS".equals(targetMode) && !"TOP_DAMAGER".equals(targetMode)) targetMode = "KILLER";
+            if (!"SPLIT_BETWEEN_PARTICIPANTS".equals(participantRewardMode) && !"PROPORTIONAL_BY_DAMAGE".equals(participantRewardMode)) participantRewardMode = "FULL_TO_EACH_PARTICIPANT";
+            if (!"FIXED".equals(lootVictimWalletMode)) lootVictimWalletMode = "PERCENT_BALANCE";
+            if (Double.isNaN(lootVictimWalletMinAmount) || Double.isInfinite(lootVictimWalletMinAmount)) lootVictimWalletMinAmount = 0.0D;
+            if (Double.isNaN(lootVictimWalletMaxAmount) || Double.isInfinite(lootVictimWalletMaxAmount)) lootVictimWalletMaxAmount = lootVictimWalletMinAmount;
+            lootVictimWalletMinAmount = Math.max(0.0D, lootVictimWalletMinAmount);
+            lootVictimWalletMaxAmount = Math.max(lootVictimWalletMinAmount, lootVictimWalletMaxAmount);
+            if (Double.isNaN(lootVictimWalletPercent) || Double.isInfinite(lootVictimWalletPercent)) lootVictimWalletPercent = 10.0D;
+            lootVictimWalletPercent = clamp(lootVictimWalletPercent, 0.0D, 100.0D);
+            if (Double.isNaN(lootVictimWalletMaxPercentAmount) || Double.isInfinite(lootVictimWalletMaxPercentAmount)) lootVictimWalletMaxPercentAmount = 0.0D;
+            lootVictimWalletMaxPercentAmount = Math.max(0.0D, lootVictimWalletMaxPercentAmount);
+            if (reason == null) reason = "";
+        }
+    }
+
+    public static class EconomyMarketSettings {
+        public boolean enabled = true;
+        public boolean loggedInPlayersOnly = true;
+        public boolean allowOutOfStockPurchases = false;
+        public List<EconomyMarketListing> listings = defaultListings();
+
+        public void sanitize() {
+            if (listings == null) listings = defaultListings();
+            for (EconomyMarketListing listing : listings) if (listing != null) listing.sanitize();
+        }
+
+        public static List<EconomyMarketListing> defaultListings() {
+            List<EconomyMarketListing> result = new ArrayList<>();
+            result.add(new EconomyMarketListing("market-bread", "minecraft:bread", "Bread", 25.0D, 1, 16, -1, 0, "", true));
+            result.add(new EconomyMarketListing("market-arrows", "minecraft:arrow", "Arrows", 2.0D, 1, 64, -1, 0, "", true));
+            result.add(new EconomyMarketListing("market-iron-sword", "minecraft:iron_sword", "Iron Sword", 250.0D, 5, 1, -1, 0, "", true));
+            return result;
+        }
+    }
+
+    public static class EconomyMarketListing {
+        public String id = "market-listing";
+        public boolean enabled = true;
+        public String item = "minecraft:bread";
+        public String displayName = "Bread";
+        public double price = 25.0D;
+        public int minDay = 1;
+        public int maxPerPurchase = 16;
+        public int stock = -1;
+        public int playerPurchaseLimit = 0;
+        public String commandOnPurchase = "";
+
+        public EconomyMarketListing() {}
+
+        public EconomyMarketListing(String id, String item, String displayName, double price, int minDay, int maxPerPurchase, int stock, int playerPurchaseLimit, String commandOnPurchase, boolean enabled) {
+            this.id = id;
+            this.item = item;
+            this.displayName = displayName;
+            this.price = price;
+            this.minDay = minDay;
+            this.maxPerPurchase = maxPerPurchase;
+            this.stock = stock;
+            this.playerPurchaseLimit = playerPurchaseLimit;
+            this.commandOnPurchase = commandOnPurchase;
+            this.enabled = enabled;
+        }
+
+        public void sanitize() {
+            if (id == null || id.isBlank()) id = "market-listing";
+            if (item == null || item.isBlank()) item = "minecraft:bread";
+            if (displayName == null || displayName.isBlank()) displayName = item;
+            price = Math.max(0.0D, price);
+            minDay = clamp(minDay, 1, 30);
+            maxPerPurchase = Math.max(1, maxPerPurchase);
+            stock = Math.max(-1, stock);
+            playerPurchaseLimit = Math.max(0, playerPurchaseLimit);
+            if (commandOnPurchase == null) commandOnPurchase = "";
         }
     }
 

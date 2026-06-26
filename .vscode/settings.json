@@ -1,0 +1,29 @@
+{
+    "files.exclude": {
+        "**/.git": true,
+        "**/.svn": true,
+        "**/.hg": true,
+        "**/.DS_Store": true,
+        "**/Thumbs.db": true,
+        "**/flutter/ephemeral": true,
+        "**/Flutter/ephemeral": true,
+        "**/.symlinks": true,
+        "**/.plugin_symlinks": true,
+        "[!f]*/**": true,
+        "f[!o]*/**": true,
+        "fo[!r]*/**": true,
+        "for[!g]*/**": true,
+        "forg[!e]*/**": true,
+        "forge[!-]*/**": true,
+        "forge-[!s]*/**": true,
+        "forge-s[!e]*/**": true,
+        "forge-se[!r]*/**": true,
+        "forge-ser[!v]*/**": true,
+        "forge-serv[!e]*/**": true,
+        "forge-serve[!r]*/**": true,
+        "forge-server[!-]*/**": true,
+        "forge-server-[!m]*/**": true,
+        "forge-server-m[!o]*/**": true,
+        "forge-server-mo[!d]*/**": true
+    }
+}

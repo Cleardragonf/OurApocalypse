@@ -25,7 +25,7 @@ import {
   Typography
 } from '@mui/material';
 import { Fragment, useMemo, useState } from 'react';
-import type { ApocalypseConfig, DropProfile, DropRule, RewardTargetMode } from '../types';
+import type { ApocalypseConfig, DropProfile, DropRule, EconomyKillRewardTargetMode, EconomyParticipantRewardMode, RewardTargetMode } from '../types';
 import { VANILLA_DROP_ITEM_OPTIONS } from '../registryOptions';
 
 const ITEM_DISPLAY_TOOLTIP = 'Minecraft items display without the minecraft: prefix; modded IDs keep their namespace. The saved config still stores the full registry ID.';
@@ -38,6 +38,44 @@ const REWARD_TARGET_LABELS: Record<RewardTargetMode, string> = {
   ALL_PLAYERS: 'All players',
   EVENT_TARGET: 'Event target placeholder'
 };
+
+const ECONOMY_REWARD_TARGET_LABELS: Record<EconomyKillRewardTargetMode, string> = {
+  KILLER: 'Killer player',
+  NEAREST_PLAYER: 'Nearest player',
+  ALL_PLAYERS: 'All players',
+  ALL_PARTICIPANTS: 'Players who damaged mob',
+  TOP_DAMAGER: 'Top damage dealer'
+};
+
+const ECONOMY_PARTICIPANT_MODE_LABELS: Record<EconomyParticipantRewardMode, string> = {
+  FULL_TO_EACH_PARTICIPANT: 'Full amount to each',
+  SPLIT_BETWEEN_PARTICIPANTS: 'Split evenly',
+  PROPORTIONAL_BY_DAMAGE: 'Split by damage dealt'
+};
+
+function economyRewardChance(rule: DropRule): number {
+  return Number.isFinite(rule.economyRewardChance) ? Number(rule.economyRewardChance) : 1;
+}
+
+function economyRewardMin(rule: DropRule): number {
+  return Number.isFinite(rule.economyRewardMinAmount) ? Number(rule.economyRewardMinAmount) : 5;
+}
+
+function economyRewardMax(rule: DropRule): number {
+  return Number.isFinite(rule.economyRewardMaxAmount) ? Number(rule.economyRewardMaxAmount) : Math.max(economyRewardMin(rule), 10);
+}
+
+function economyRewardTarget(rule: DropRule): EconomyKillRewardTargetMode {
+  return (rule.economyRewardTargetMode ?? 'KILLER') as EconomyKillRewardTargetMode;
+}
+
+function economyRewardParticipantMode(rule: DropRule): EconomyParticipantRewardMode {
+  return (rule.economyRewardParticipantMode ?? 'FULL_TO_EACH_PARTICIPANT') as EconomyParticipantRewardMode;
+}
+
+function economyRewardReason(rule: DropRule): string {
+  return rule.economyRewardReason ?? 'apocalypse-drop-economy-reward';
+}
 
 function rewardChance(rule: DropRule): number {
   return Number.isFinite(rule.ourMagicRewardChance) ? Number(rule.ourMagicRewardChance) : 1;
@@ -143,6 +181,13 @@ function newRule(): DropRule {
     chance: 0.01,
     minDay: 1,
     enabled: true,
+    economyRewardEnabled: false,
+    economyRewardChance: 1,
+    economyRewardTargetMode: 'KILLER',
+    economyRewardParticipantMode: 'FULL_TO_EACH_PARTICIPANT',
+    economyRewardMinAmount: 5,
+    economyRewardMaxAmount: 10,
+    economyRewardReason: 'apocalypse-drop-economy-reward',
     ourMagicRewardEnabled: false,
     ourMagicRewardChance: 1,
     ourMagicRewardTargetMode: 'KILLER',
@@ -301,7 +346,7 @@ export default function DropRulesTable({ config, registryItems, refreshRegistryI
       </Alert>
 
       <Alert severity="warning">
-        OurMagic XP reward rows live inside Drops. The OurMagic connection/header/token settings are edited in Apocalypse → Config → Core Config.
+        OurMagic XP and Economy money reward rows live inside Drops. The OurMagic connection/header/token settings are edited in Admin → Config → Core Config.
       </Alert>
 
       {config.drops.activeMode !== 'LEGACY_RULES' && (
@@ -383,7 +428,7 @@ function RulesTable({ rows, itemOptions, onAdd, onUpdate, onRemove }: { rows: Dr
             <TableCell>Max</TableCell>
             <TableCell>Chance 0-1</TableCell>
             <TableCell>Min Day</TableCell>
-            <TableCell>OurMagic Reward</TableCell>
+            <TableCell>Rewards</TableCell>
             <TableCell align="right">Remove</TableCell>
           </TableRow>
         </TableHead>
@@ -449,22 +494,106 @@ function RulesTable({ rows, itemOptions, onAdd, onUpdate, onRemove }: { rows: Dr
                 <TableCell><TextField type="number" inputProps={{ step: 0.01 }} value={row.chance} onChange={(event) => onUpdate(index, { chance: numberValue(event.target.value, row.chance) })} /></TableCell>
                 <TableCell><TextField type="number" value={row.minDay} onChange={(event) => onUpdate(index, { minDay: numberValue(event.target.value, row.minDay) })} /></TableCell>
                 <TableCell>
-                  <FormControlLabel
-                    control={<Checkbox checked={row.ourMagicRewardEnabled ?? false} onChange={(event) => onUpdate(index, {
-                      ourMagicRewardEnabled: event.target.checked,
-                      ourMagicRewardChance: rewardChance(row),
-                      ourMagicRewardTargetMode: rewardTarget(row),
-                      ourMagicRewardMinExperience: rewardMinXp(row),
-                      ourMagicRewardMaxExperience: rewardMaxXp(row),
-                      ourMagicRewardReason: rewardReason(row)
-                    })} />}
-                    label="OurMagic XP"
-                  />
+                  <Stack spacing={0.5}>
+                    <FormControlLabel
+                      control={<Checkbox checked={row.economyRewardEnabled ?? false} onChange={(event) => onUpdate(index, {
+                        economyRewardEnabled: event.target.checked,
+                        economyRewardChance: economyRewardChance(row),
+                        economyRewardTargetMode: economyRewardTarget(row),
+                        economyRewardParticipantMode: economyRewardParticipantMode(row),
+                        economyRewardMinAmount: economyRewardMin(row),
+                        economyRewardMaxAmount: economyRewardMax(row),
+                        economyRewardReason: economyRewardReason(row)
+                      })} />}
+                      label="Economy $"
+                    />
+                    <FormControlLabel
+                      control={<Checkbox checked={row.ourMagicRewardEnabled ?? false} onChange={(event) => onUpdate(index, {
+                        ourMagicRewardEnabled: event.target.checked,
+                        ourMagicRewardChance: rewardChance(row),
+                        ourMagicRewardTargetMode: rewardTarget(row),
+                        ourMagicRewardMinExperience: rewardMinXp(row),
+                        ourMagicRewardMaxExperience: rewardMaxXp(row),
+                        ourMagicRewardReason: rewardReason(row)
+                      })} />}
+                      label="OurMagic XP"
+                    />
+                  </Stack>
                 </TableCell>
                 <TableCell align="right">
                   <IconButton color="error" onClick={() => onRemove(index)}><DeleteIcon /></IconButton>
                 </TableCell>
               </TableRow>
+              {row.economyRewardEnabled && (
+                <TableRow key={`drop-rule-${index}-economy-reward`}>
+                  <TableCell />
+                  <TableCell colSpan={8}>
+                    <Stack spacing={1} sx={{ borderLeft: 3, borderColor: 'success.main', pl: 2, py: 1 }}>
+                      <Typography variant="subtitle2" fontWeight={900}>Economy money reward for this drop rule</Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Uses this same entity/profile/min-day row. Participants means players who damaged the mob before it died.
+                      </Typography>
+                      <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems="center">
+                        <TextField
+                          type="number"
+                          label="Min $"
+                          size="small"
+                          value={economyRewardMin(row)}
+                          onChange={(event) => onUpdate(index, { economyRewardMinAmount: numberValue(event.target.value, economyRewardMin(row)) })}
+                        />
+                        <TextField
+                          type="number"
+                          label="Max $"
+                          size="small"
+                          value={economyRewardMax(row)}
+                          onChange={(event) => onUpdate(index, { economyRewardMaxAmount: numberValue(event.target.value, economyRewardMax(row)) })}
+                        />
+                        <TextField
+                          type="number"
+                          label="Reward Chance 0-1"
+                          size="small"
+                          inputProps={{ step: 0.01 }}
+                          value={economyRewardChance(row)}
+                          onChange={(event) => onUpdate(index, { economyRewardChance: numberValue(event.target.value, economyRewardChance(row)) })}
+                        />
+                        <FormControl size="small" sx={{ minWidth: 200 }}>
+                          <InputLabel>Reward Target</InputLabel>
+                          <Select
+                            label="Reward Target"
+                            value={economyRewardTarget(row)}
+                            onChange={(event) => onUpdate(index, { economyRewardTargetMode: event.target.value as EconomyKillRewardTargetMode, economyRewardParticipantMode: economyRewardParticipantMode(row) })}
+                          >
+                            {(Object.keys(ECONOMY_REWARD_TARGET_LABELS) as EconomyKillRewardTargetMode[]).map((target) => (
+                              <MenuItem key={target} value={target}>{ECONOMY_REWARD_TARGET_LABELS[target]}</MenuItem>
+                            ))}
+                          </Select>
+                        </FormControl>
+                        {economyRewardTarget(row) === 'ALL_PARTICIPANTS' && (
+                          <FormControl size="small" sx={{ minWidth: 220 }}>
+                            <InputLabel>Participant Payout</InputLabel>
+                            <Select
+                              label="Participant Payout"
+                              value={economyRewardParticipantMode(row)}
+                              onChange={(event) => onUpdate(index, { economyRewardParticipantMode: event.target.value as EconomyParticipantRewardMode })}
+                            >
+                              {(Object.keys(ECONOMY_PARTICIPANT_MODE_LABELS) as EconomyParticipantRewardMode[]).map((mode) => (
+                                <MenuItem key={mode} value={mode}>{ECONOMY_PARTICIPANT_MODE_LABELS[mode]}</MenuItem>
+                              ))}
+                            </Select>
+                          </FormControl>
+                        )}
+                        <TextField
+                          fullWidth
+                          label="Reason / Source"
+                          size="small"
+                          value={economyRewardReason(row)}
+                          onChange={(event) => onUpdate(index, { economyRewardReason: event.target.value })}
+                        />
+                      </Stack>
+                    </Stack>
+                  </TableCell>
+                </TableRow>
+              )}
               {row.ourMagicRewardEnabled && (
                 <TableRow key={`drop-rule-${index}-ourmagic-reward`}>
                   <TableCell />

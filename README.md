@@ -520,12 +520,15 @@ The admin UI now has these top-level pages:
 Admin
 Apocalypse
 Scheduled Events
+Economy
 Clear Lag
 ```
 
 `Admin` contains connection/status and core config settings, including the Mod REST API settings and OurMagic integration settings.
 
 `Apocalypse` contains the mob gameplay controls: wave profiles, entity profiles, drops, mob cleanup/rollback, and raw JSON.
+
+`Economy` contains active-play earnings, AFK payment rules, death costs, baseline kill rewards, and market listings.
 
 `Clear Lag` is a UI-ready configuration page for a future lag-cleanup scheduler. It stores settings for dropped items, XP orbs, projectiles, empty vehicles, warning/completion messages, interval timing, and item whitelist rules.
 
@@ -606,21 +609,116 @@ The fields are stored on the drop rule:
 }
 ```
 
-OurMagic API settings are edited in **Admin → Config → Core Config**, beside the Mod REST API settings. They are still stored under:
+OurMagic API settings are edited in **Admin → Config → Core Config**, beside the Mod REST API settings. They are stored under:
 
 ```json
 "integrations": {
   "ourMagic": {
     "enabled": false,
-    "baseUrl": "http://127.0.0.1:8767",
-    "giveExperiencePath": "/api/experience/give",
-    "token": "",
-    "tokenHeader": "X-Admin-Token",
-    "timeoutMillis": 3000
+    "host": "127.0.0.1",
+    "port": 8767,
+    "token": "change-me-now"
   }
 }
 ```
 
-The Drops page only controls per-rule reward rows. The OurMagic base URL, header, token, path, and timeout are centralized in the Admin → Config tab so they are not repeated inside Drops. Server-side calls to the final OurMagic `giveEXP` endpoint can be wired after that endpoint contract is finalized.
-#   O u r A p o c a l y p s e  
- 
+The Drops page only controls per-rule reward rows. The OurMagic host, port, and token are centralized in the Admin → Config tab so they are not repeated inside Drops. Server-side calls to the final OurMagic `giveEXP` endpoint can be wired after that endpoint contract is finalized.
+
+### Economy tab
+
+The UI now includes a top-level **Economy** tab with its own sub-tabs:
+
+- **Config** for active-play pay, AFK behavior, death costs, and baseline kill rewards.
+- **Market** for player purchase listings.
+
+It includes:
+
+```text
+Active play earnings
+  Pay players a configured amount per hour, such as $100/hour.
+  AFK detection can stop the timer after the configured AFK timeout.
+
+Death costs
+  Configure a default death penalty and specific overrides by death cause.
+  Costs can be fixed money amounts or a percent of the player's balance.
+
+Baseline kill rewards
+  Configure global per-entity money rewards for killing mobs.
+  Example: zombie kills earn $5-$8, creeper kills earn $12-$18.
+
+Market sub-tab
+  Configure items that logged-in players can eventually buy.
+  Each listing stores item, display name, price, minimum day, max per purchase, stock, player limit, and an optional command-on-purchase hook.
+```
+
+Economy reward targets now use these meanings:
+
+- `KILLER` = final-kill player only.
+- `NEAREST_PLAYER` = nearest player to the entity when it died.
+- `ALL_PLAYERS` = every online player.
+- `ALL_PARTICIPANTS` = players who damaged the entity before it died.
+- `TOP_DAMAGER` = player who dealt the most damage.
+
+Baseline kill rewards are not limited to hostile mobs. The Economy tab can target any registered entity type, including passive animals, villagers, bosses, modded entities, and `minecraft:player`.
+
+When `ALL_PARTICIPANTS` is selected, participant payout can be:
+
+- `FULL_TO_EACH_PARTICIPANT` = every damaging player gets the full rolled reward.
+- `SPLIT_BETWEEN_PARTICIPANTS` = the rolled reward is split evenly.
+- `PROPORTIONAL_BY_DAMAGE` = the rolled reward is split by damage dealt.
+
+For player kill rules, enable `lootVictimWalletEnabled` to remove money from the defeated player and award it to the configured target. Wallet loot can use a fixed range or a percentage of the defeated player's balance, with an optional cap.
+
+Economy config is stored under:
+
+```json
+"economy": {
+  "enabled": true,
+  "currencyName": "Dollars",
+  "payWhileActive": {
+    "enabled": true,
+    "amountPerHour": 100,
+    "afkStopsTimer": true
+  },
+  "deathCosts": {},
+  "killRewards": {
+    "rules": [
+      {
+        "entity": "minecraft:player",
+        "lootVictimWalletEnabled": true,
+        "lootVictimWalletMode": "PERCENT_BALANCE",
+        "lootVictimWalletPercent": 10,
+        "lootVictimWalletMaxPercentAmount": 500
+      }
+    ]
+  },
+  "market": {}
+}
+```
+
+### Drop profile economy reward overrides
+
+Inside **Apocalypse → Drops**, each drop rule can optionally add an **Economy $** reward row underneath the item drop row.
+
+Use this when a specific drop profile/entity/min-day row should pay differently than the baseline economy reward for that entity type. Leave it off to use the global baseline from the Economy tab.
+
+```json
+{
+  "entity": "minecraft:creeper",
+  "item": "minecraft:gunpowder",
+  "minCount": 1,
+  "maxCount": 5,
+  "chance": 0.6,
+  "minDay": 10,
+  "enabled": true,
+  "economyRewardEnabled": true,
+  "economyRewardChance": 1,
+  "economyRewardMinAmount": 20,
+  "economyRewardMaxAmount": 35,
+  "economyRewardTargetMode": "KILLER",
+  "economyRewardParticipantMode": "FULL_TO_EACH_PARTICIPANT",
+  "economyRewardReason": "blood-moon-creeper"
+}
+```
+
+This adds the UI/config model only. The server-side balance ledger, AFK timer, death penalty executor, kill reward payout, and market purchase executor can be wired after the UI shape feels right.

@@ -92,6 +92,7 @@ function formatPercent(value: number): string {
 }
 
 
+
 type NumericMobPropertyEditorProps = {
   disabled: boolean;
   label: string;
@@ -586,6 +587,7 @@ export default function EntityWeightsTable({ rows, effectiveRows, onChange, sele
                                 />
                               </Stack>
                             </Grid>
+
                             <Grid item xs={12}>
                               <Box sx={{ mt: 1, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
                                 <Stack spacing={2}>

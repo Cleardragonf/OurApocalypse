@@ -981,7 +981,14 @@
             "ourMagicRewardTargetMode": "KILLER",
             "ourMagicRewardMinExperience": 2,
             "ourMagicRewardMaxExperience": 4,
-            "ourMagicRewardReason": "early-scraps-zombie"
+            "ourMagicRewardReason": "early-scraps-zombie",
+            "economyRewardEnabled": true,
+            "economyRewardChance": 1,
+            "economyRewardMinAmount": 5,
+            "economyRewardMaxAmount": 8,
+            "economyRewardTargetMode": "KILLER",
+            "economyRewardReason": "early-scraps-economy-reward",
+            "economyRewardParticipantMode": "FULL_TO_EACH_PARTICIPANT"
           },
           {
             "entity": "minecraft:skeleton",
@@ -1495,9 +1502,11 @@
   "integrations": {
     "ourMagic": {
       "enabled": false,
-      "host": "127.0.0.1",
-      "port": 8767,
-      "token": "change-me-now"
+      "baseUrl": "http://127.0.0.1:8767",
+      "giveExperiencePath": "/api/experience/give",
+      "token": "",
+      "tokenHeader": "X-Admin-Token",
+      "timeoutMillis": 3000
     }
   },
   "entityWeights": [
@@ -1643,5 +1652,193 @@
   ],
   "allowedDimensions": [
     "minecraft:overworld"
-  ]
+  ],
+  "economy": {
+    "enabled": true,
+    "currencyName": "Dollars",
+    "startingBalance": 0,
+    "payWhileActive": {
+      "enabled": true,
+      "amountPerHour": 100,
+      "payoutIntervalSeconds": 60,
+      "afkStopsTimer": true,
+      "afkTimeoutSeconds": 300
+    },
+    "deathCosts": {
+      "enabled": true,
+      "defaultMode": "FIXED",
+      "defaultAmount": 50,
+      "defaultPercent": 5,
+      "rules": [
+        {
+          "id": "death-any",
+          "enabled": true,
+          "deathCause": "ANY",
+          "mode": "FIXED",
+          "amount": 50,
+          "percent": 5,
+          "reason": "death-cost"
+        },
+        {
+          "id": "death-explosion",
+          "enabled": true,
+          "deathCause": "minecraft:explosion",
+          "mode": "FIXED",
+          "amount": 75,
+          "percent": 8,
+          "reason": "explosion-death-cost"
+        },
+        {
+          "id": "death-void",
+          "enabled": true,
+          "deathCause": "minecraft:void",
+          "mode": "PERCENT_BALANCE",
+          "amount": 0,
+          "percent": 15,
+          "reason": "void-death-cost"
+        }
+      ]
+    },
+    "killRewards": {
+      "enabled": true,
+      "defaultMinAmount": 1,
+      "defaultMaxAmount": 3,
+      "defaultChance": 1,
+      "rules": [
+        {
+          "id": "reward-zombie",
+          "enabled": true,
+          "entity": "minecraft:zombie",
+          "minDay": 1,
+          "chance": 1,
+          "minAmount": 5,
+          "maxAmount": 8,
+          "targetMode": "KILLER",
+          "reason": "zombie-kill",
+          "participantRewardMode": "FULL_TO_EACH_PARTICIPANT",
+          "lootVictimWalletEnabled": false,
+          "lootVictimWalletMode": "PERCENT_BALANCE",
+          "lootVictimWalletMinAmount": 0,
+          "lootVictimWalletMaxAmount": 0,
+          "lootVictimWalletPercent": 10,
+          "lootVictimWalletMaxPercentAmount": 500
+        },
+        {
+          "id": "reward-skeleton",
+          "enabled": true,
+          "entity": "minecraft:skeleton",
+          "minDay": 1,
+          "chance": 1,
+          "minAmount": 6,
+          "maxAmount": 10,
+          "targetMode": "KILLER",
+          "reason": "skeleton-kill",
+          "participantRewardMode": "FULL_TO_EACH_PARTICIPANT",
+          "lootVictimWalletEnabled": false,
+          "lootVictimWalletMode": "PERCENT_BALANCE",
+          "lootVictimWalletMinAmount": 0,
+          "lootVictimWalletMaxAmount": 0,
+          "lootVictimWalletPercent": 10,
+          "lootVictimWalletMaxPercentAmount": 500
+        },
+        {
+          "id": "reward-creeper",
+          "enabled": true,
+          "entity": "minecraft:creeper",
+          "minDay": 2,
+          "chance": 1,
+          "minAmount": 12,
+          "maxAmount": 18,
+          "targetMode": "KILLER",
+          "reason": "creeper-kill",
+          "participantRewardMode": "FULL_TO_EACH_PARTICIPANT",
+          "lootVictimWalletEnabled": false,
+          "lootVictimWalletMode": "PERCENT_BALANCE",
+          "lootVictimWalletMinAmount": 0,
+          "lootVictimWalletMaxAmount": 0,
+          "lootVictimWalletPercent": 10,
+          "lootVictimWalletMaxPercentAmount": 500
+        },
+        {
+          "id": "reward-ghast",
+          "enabled": true,
+          "entity": "minecraft:ghast",
+          "minDay": 20,
+          "chance": 1,
+          "minAmount": 35,
+          "maxAmount": 60,
+          "targetMode": "KILLER",
+          "reason": "ghast-kill",
+          "participantRewardMode": "FULL_TO_EACH_PARTICIPANT",
+          "lootVictimWalletEnabled": false,
+          "lootVictimWalletMode": "PERCENT_BALANCE",
+          "lootVictimWalletMinAmount": 0,
+          "lootVictimWalletMaxAmount": 0,
+          "lootVictimWalletPercent": 10,
+          "lootVictimWalletMaxPercentAmount": 500
+        },
+        {
+          "id": "reward-player-wallet-loot",
+          "enabled": true,
+          "entity": "minecraft:player",
+          "minDay": 1,
+          "chance": 1,
+          "minAmount": 0,
+          "maxAmount": 0,
+          "targetMode": "KILLER",
+          "participantRewardMode": "FULL_TO_EACH_PARTICIPANT",
+          "lootVictimWalletEnabled": true,
+          "lootVictimWalletMode": "PERCENT_BALANCE",
+          "lootVictimWalletMinAmount": 0,
+          "lootVictimWalletMaxAmount": 0,
+          "lootVictimWalletPercent": 10,
+          "lootVictimWalletMaxPercentAmount": 500,
+          "reason": "player-wallet-loot"
+        }
+      ]
+    },
+    "market": {
+      "enabled": true,
+      "loggedInPlayersOnly": true,
+      "allowOutOfStockPurchases": false,
+      "listings": [
+        {
+          "id": "market-bread",
+          "enabled": true,
+          "item": "minecraft:bread",
+          "displayName": "Bread",
+          "price": 25,
+          "minDay": 1,
+          "maxPerPurchase": 16,
+          "stock": -1,
+          "playerPurchaseLimit": 0,
+          "commandOnPurchase": ""
+        },
+        {
+          "id": "market-arrows",
+          "enabled": true,
+          "item": "minecraft:arrow",
+          "displayName": "Arrows",
+          "price": 2,
+          "minDay": 1,
+          "maxPerPurchase": 64,
+          "stock": -1,
+          "playerPurchaseLimit": 0,
+          "commandOnPurchase": ""
+        },
+        {
+          "id": "market-iron-sword",
+          "enabled": true,
+          "item": "minecraft:iron_sword",
+          "displayName": "Iron Sword",
+          "price": 250,
+          "minDay": 5,
+          "maxPerPurchase": 1,
+          "stock": -1,
+          "playerPurchaseLimit": 0,
+          "commandOnPurchase": ""
+        }
+      ]
+    }
+  }
 }

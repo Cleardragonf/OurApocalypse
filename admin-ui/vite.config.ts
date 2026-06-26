@@ -6,5 +6,15 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: false
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          react: ['react', 'react-dom'],
+          mui: ['@mui/material', '@mui/icons-material', '@emotion/react', '@emotion/styled']
+        }
+      }
+    }
   }
 });

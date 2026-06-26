@@ -1,6 +1,6 @@
-export type DifficultyMode = 'REAL_MONTH_DAY' | 'WORLD_DAY_CYCLE' | 'MANUAL';
-export type ProfileMode = 'NIGHT_PROFILES' | 'LEGACY_RULES';
-export type PropertyValueMode = 'FIXED' | 'RANGED';
+export type DifficultyMode = "REAL_MONTH_DAY" | "WORLD_DAY_CYCLE" | "MANUAL";
+export type ProfileMode = "NIGHT_PROFILES" | "LEGACY_RULES";
+export type PropertyValueMode = "FIXED" | "RANGED";
 
 export type MobProperties = {
   enabled: boolean;
@@ -59,13 +59,31 @@ export type MobProperties = {
   spiderWebCooldownTicks: number;
 };
 
-
-export type ScheduledEventStepType = 'COMMAND' | 'WAIT' | 'STOP' | 'TARGET_PLAYER';
-export type ScheduledEventTargetMode = 'NEAREST_PLAYER' | 'RANDOM_PLAYER' | 'ALL_PLAYERS' | 'SPECIFIC_PLAYER' | 'EVENT_PLAYER';
-export type ScheduledEventKind = 'COMMAND_SEQUENCE' | 'ITEM_DROP_PARTY' | 'EXPERIENCE_FARM';
-export type ModEventCenterMode = 'TARGET_PLAYER' | 'WORLD_SPAWN' | 'SPECIFIC_COORDINATES';
-export type ExperienceProvider = 'VANILLA_XP' | 'OURMAGIC_API';
-export type ScheduledCommandParameterType = 'STRING' | 'NUMBER' | 'BOOLEAN' | 'SELECT';
+export type ScheduledEventStepType =
+  | "COMMAND"
+  | "WAIT"
+  | "STOP"
+  | "TARGET_PLAYER";
+export type ScheduledEventTargetMode =
+  | "NEAREST_PLAYER"
+  | "RANDOM_PLAYER"
+  | "ALL_PLAYERS"
+  | "SPECIFIC_PLAYER"
+  | "EVENT_PLAYER";
+export type ScheduledEventKind =
+  | "COMMAND_SEQUENCE"
+  | "ITEM_DROP_PARTY"
+  | "EXPERIENCE_FARM";
+export type ModEventCenterMode =
+  | "TARGET_PLAYER"
+  | "WORLD_SPAWN"
+  | "SPECIFIC_COORDINATES";
+export type ExperienceProvider = "VANILLA_XP" | "OURMAGIC_API";
+export type ScheduledCommandParameterType =
+  | "STRING"
+  | "NUMBER"
+  | "BOOLEAN"
+  | "SELECT";
 export type ScheduledCommandParameterValue = string | number | boolean;
 
 export type ScheduledCommandParameterDefinition = {
@@ -158,8 +176,12 @@ export type ScheduledEventsConfig = {
   events: ScheduledEvent[];
 };
 
-export type RewardTargetMode = 'KILLER' | 'NEAREST_PLAYER' | 'ALL_PLAYERS' | 'EVENT_TARGET';
-export type RewardType = 'VANILLA_XP' | 'OURMAGIC_XP';
+export type RewardTargetMode =
+  | "KILLER"
+  | "NEAREST_PLAYER"
+  | "ALL_PLAYERS"
+  | "EVENT_TARGET";
+export type RewardType = "VANILLA_XP" | "OURMAGIC_XP";
 
 export type RewardRule = {
   id: string;
@@ -188,6 +210,93 @@ export type IntegrationsConfig = {
   };
 };
 
+export type EconomyDeathCostMode = "FIXED" | "PERCENT_BALANCE";
+export type EconomyWalletLootMode = "FIXED" | "PERCENT_BALANCE";
+export type EconomyKillRewardTargetMode =
+  | "KILLER"
+  | "NEAREST_PLAYER"
+  | "ALL_PLAYERS"
+  | "ALL_PARTICIPANTS"
+  | "TOP_DAMAGER";
+export type EconomyParticipantRewardMode =
+  | "FULL_TO_EACH_PARTICIPANT"
+  | "SPLIT_BETWEEN_PARTICIPANTS"
+  | "PROPORTIONAL_BY_DAMAGE";
+
+export type EconomyDeathCostRule = {
+  id: string;
+  enabled: boolean;
+  deathCause: string;
+  mode: EconomyDeathCostMode;
+  amount: number;
+  percent: number;
+  reason: string;
+};
+
+export type EconomyEntityRewardRule = {
+  id: string;
+  enabled: boolean;
+  entity: string;
+  minDay: number;
+  chance: number;
+  minAmount: number;
+  maxAmount: number;
+  targetMode: EconomyKillRewardTargetMode;
+  participantRewardMode?: EconomyParticipantRewardMode;
+  lootVictimWalletEnabled?: boolean;
+  lootVictimWalletMode?: EconomyWalletLootMode;
+  lootVictimWalletMinAmount?: number;
+  lootVictimWalletMaxAmount?: number;
+  lootVictimWalletPercent?: number;
+  lootVictimWalletMaxPercentAmount?: number;
+  reason: string;
+};
+
+export type EconomyMarketListing = {
+  id: string;
+  enabled: boolean;
+  item: string;
+  displayName: string;
+  price: number;
+  minDay: number;
+  maxPerPurchase: number;
+  stock: number;
+  playerPurchaseLimit: number;
+  commandOnPurchase: string;
+};
+
+export type EconomyConfig = {
+  enabled: boolean;
+  currencyName: string;
+  startingBalance: number;
+  payWhileActive: {
+    enabled: boolean;
+    amountPerHour: number;
+    payoutIntervalSeconds: number;
+    afkStopsTimer: boolean;
+    afkTimeoutSeconds: number;
+  };
+  deathCosts: {
+    enabled: boolean;
+    defaultMode: EconomyDeathCostMode;
+    defaultAmount: number;
+    defaultPercent: number;
+    rules: EconomyDeathCostRule[];
+  };
+  killRewards: {
+    enabled: boolean;
+    defaultMinAmount: number;
+    defaultMaxAmount: number;
+    defaultChance: number;
+    rules: EconomyEntityRewardRule[];
+  };
+  market: {
+    enabled: boolean;
+    loggedInPlayersOnly: boolean;
+    allowOutOfStockPurchases: boolean;
+    listings: EconomyMarketListing[];
+  };
+};
 
 export type ClearLagConfig = {
   enabled: boolean;
@@ -266,6 +375,14 @@ export type DropRule = {
   chance: number;
   minDay: number;
   enabled: boolean;
+  /** Optional economy money reward that lives with this drop rule/profile row. */
+  economyRewardEnabled?: boolean;
+  economyRewardChance?: number;
+  economyRewardMinAmount?: number;
+  economyRewardMaxAmount?: number;
+  economyRewardTargetMode?: EconomyKillRewardTargetMode;
+  economyRewardParticipantMode?: EconomyParticipantRewardMode;
+  economyRewardReason?: string;
   /** Optional non-item reward that lives with this drop rule/profile row. */
   ourMagicRewardEnabled?: boolean;
   ourMagicRewardChance?: number;
@@ -321,7 +438,7 @@ export type ApocalypseConfig = {
   entitySpawning: {
     activeMode: ProfileMode;
     /** SKIP_SPAWN = failed chance produces no mob. REROLL_ENTITY = try another entity after a failed chance roll. */
-    failedChanceBehavior: 'SKIP_SPAWN' | 'REROLL_ENTITY';
+    failedChanceBehavior: "SKIP_SPAWN" | "REROLL_ENTITY";
     legacyWeights: EntityWeight[];
     nightProfiles: EntitySpawnProfile[];
   };
@@ -363,6 +480,7 @@ export type ApocalypseConfig = {
   };
   scheduledEvents: ScheduledEventsConfig;
   clearLag: ClearLagConfig;
+  economy: EconomyConfig;
   /** Legacy hidden field from the old separate Rewards tab. New XP rewards live on drops.rules. */
   rewards?: RewardsConfig;
   integrations: IntegrationsConfig;

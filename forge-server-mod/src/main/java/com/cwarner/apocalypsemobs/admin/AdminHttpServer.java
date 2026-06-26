@@ -61,6 +61,7 @@ public final class AdminHttpServer {
             httpServer.createContext("/api/placed-blocks", this::handlePlacedBlocks);
             httpServer.createContext("/api/rollback/placed-blocks", this::handleRollbackPlacedBlocks);
             httpServer.createContext("/api/registry/items", this::handleRegistryItems);
+            httpServer.createContext("/api/registry/entities", this::handleRegistryEntities);
             httpServer.createContext("/api/registry/commands", this::handleRegistryCommands);
             httpServer.createContext("/api/registry/command-suggestions", this::handleCommandSuggestions);
             httpServer.start();
@@ -167,6 +168,21 @@ public final class AdminHttpServer {
         json(exchange, 200, Map.of(
                 "count", items.size(),
                 "items", items
+        ));
+    }
+
+
+    private void handleRegistryEntities(HttpExchange exchange) throws IOException {
+        if (preflight(exchange)) return;
+        if (!requireMethod(exchange, "GET")) return;
+        if (!authorized(exchange)) return;
+        List<String> entities = ForgeRegistries.ENTITY_TYPES.getKeys().stream()
+                .map(Object::toString)
+                .sorted()
+                .collect(Collectors.toList());
+        json(exchange, 200, Map.of(
+                "count", entities.size(),
+                "entities", entities
         ));
     }
 
