@@ -68,6 +68,18 @@ export type MobProperties = {
   spiderWebPlayers: boolean;
   spiderWebChance: number;
   spiderWebCooldownTicks: number;
+  preventSunBurn: boolean;
+  immuneToFire: boolean;
+  immuneToFall: boolean;
+  immuneToExplosion: boolean;
+  immuneToProjectile: boolean;
+  deathExplosion: boolean;
+  deathExplosionPower: number;
+  deathExplosionFire: boolean;
+  deathSpawn: boolean;
+  deathSpawnEntity: string;
+  deathSpawnCount: number;
+  deathSpawnChance: number;
 };
 
 export type ScheduledEventStepType =

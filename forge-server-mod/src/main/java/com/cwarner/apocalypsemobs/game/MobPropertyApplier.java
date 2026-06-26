@@ -48,6 +48,18 @@ public final class MobPropertyApplier {
     public static final String ECONOMY_REWARD_TARGET_MODE_TAG = "ApocalypseMobsEconomyRewardTargetMode";
     public static final String ECONOMY_REWARD_PARTICIPANT_MODE_TAG = "ApocalypseMobsEconomyRewardParticipantMode";
     public static final String ECONOMY_REWARD_REASON_TAG = "ApocalypseMobsEconomyRewardReason";
+    public static final String PREVENT_SUN_BURN_TAG = "ApocalypseMobsPreventSunBurn";
+    public static final String IMMUNE_FIRE_TAG = "ApocalypseMobsImmuneFire";
+    public static final String IMMUNE_FALL_TAG = "ApocalypseMobsImmuneFall";
+    public static final String IMMUNE_EXPLOSION_TAG = "ApocalypseMobsImmuneExplosion";
+    public static final String IMMUNE_PROJECTILE_TAG = "ApocalypseMobsImmuneProjectile";
+    public static final String DEATH_EXPLOSION_TAG = "ApocalypseMobsDeathExplosion";
+    public static final String DEATH_EXPLOSION_POWER_TAG = "ApocalypseMobsDeathExplosionPower";
+    public static final String DEATH_EXPLOSION_FIRE_TAG = "ApocalypseMobsDeathExplosionFire";
+    public static final String DEATH_SPAWN_TAG = "ApocalypseMobsDeathSpawn";
+    public static final String DEATH_SPAWN_ENTITY_TAG = "ApocalypseMobsDeathSpawnEntity";
+    public static final String DEATH_SPAWN_COUNT_TAG = "ApocalypseMobsDeathSpawnCount";
+    public static final String DEATH_SPAWN_CHANCE_TAG = "ApocalypseMobsDeathSpawnChance";
 
     private MobPropertyApplier() {}
 
@@ -81,6 +93,18 @@ public final class MobPropertyApplier {
         entity.getPersistentData().putString(ECONOMY_REWARD_TARGET_MODE_TAG, rule.economyRewardTargetMode);
         entity.getPersistentData().putString(ECONOMY_REWARD_PARTICIPANT_MODE_TAG, rule.economyRewardParticipantMode);
         entity.getPersistentData().putString(ECONOMY_REWARD_REASON_TAG, rule.economyRewardReason);
+        entity.getPersistentData().putBoolean(PREVENT_SUN_BURN_TAG, properties.preventSunBurn);
+        entity.getPersistentData().putBoolean(IMMUNE_FIRE_TAG, properties.immuneToFire);
+        entity.getPersistentData().putBoolean(IMMUNE_FALL_TAG, properties.immuneToFall);
+        entity.getPersistentData().putBoolean(IMMUNE_EXPLOSION_TAG, properties.immuneToExplosion);
+        entity.getPersistentData().putBoolean(IMMUNE_PROJECTILE_TAG, properties.immuneToProjectile);
+        entity.getPersistentData().putBoolean(DEATH_EXPLOSION_TAG, properties.deathExplosion);
+        entity.getPersistentData().putDouble(DEATH_EXPLOSION_POWER_TAG, properties.deathExplosionPower);
+        entity.getPersistentData().putBoolean(DEATH_EXPLOSION_FIRE_TAG, properties.deathExplosionFire);
+        entity.getPersistentData().putBoolean(DEATH_SPAWN_TAG, properties.deathSpawn);
+        entity.getPersistentData().putString(DEATH_SPAWN_ENTITY_TAG, properties.deathSpawnEntity);
+        entity.getPersistentData().putInt(DEATH_SPAWN_COUNT_TAG, properties.deathSpawnCount);
+        entity.getPersistentData().putDouble(DEATH_SPAWN_CHANCE_TAG, properties.deathSpawnChance);
 
         if (!properties.enabled) return;
 

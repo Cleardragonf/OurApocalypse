@@ -272,7 +272,19 @@ function defaultMobProperties(): MobProperties {
     endermanTeleportCooldownTicks: 160,
     spiderWebPlayers: false,
     spiderWebChance: 0,
-    spiderWebCooldownTicks: 100
+    spiderWebCooldownTicks: 100,
+    preventSunBurn: false,
+    immuneToFire: false,
+    immuneToFall: false,
+    immuneToExplosion: false,
+    immuneToProjectile: false,
+    deathExplosion: false,
+    deathExplosionPower: 2,
+    deathExplosionFire: false,
+    deathSpawn: false,
+    deathSpawnEntity: 'minecraft:zombie',
+    deathSpawnCount: 1,
+    deathSpawnChance: 1
   };
 }
 
@@ -810,6 +822,57 @@ export default function EntityWeightsTable({ rows, effectiveRows, onChange, sele
                                       ) : null}
                                     </Grid>
                                   )}
+                                </Stack>
+                              </Box>
+                            </Grid>
+
+                            <Grid item xs={12}>
+                              <Box sx={{ mt: 1, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
+                                <Stack spacing={2}>
+                                  <div>
+                                    <Typography variant="subtitle2">Advanced goals and immunities</Typography>
+                                    <Typography variant="body2" color="text.secondary">
+                                      MonsterApocalypse-style death effects, death spawns, sunlight handling, and damage immunities.
+                                    </Typography>
+                                  </div>
+                                  <Grid container spacing={2}>
+                                    <Grid item xs={12} md={2.4}>
+                                      <FormControlLabel control={<Checkbox checked={props.preventSunBurn} onChange={(event) => updateProperties(index, { preventSunBurn: event.target.checked })} />} label="Prevent sun burn" />
+                                    </Grid>
+                                    <Grid item xs={12} md={2.4}>
+                                      <FormControlLabel control={<Checkbox checked={props.immuneToFire} onChange={(event) => updateProperties(index, { immuneToFire: event.target.checked })} />} label="Fire immune" />
+                                    </Grid>
+                                    <Grid item xs={12} md={2.4}>
+                                      <FormControlLabel control={<Checkbox checked={props.immuneToFall} onChange={(event) => updateProperties(index, { immuneToFall: event.target.checked })} />} label="Fall immune" />
+                                    </Grid>
+                                    <Grid item xs={12} md={2.4}>
+                                      <FormControlLabel control={<Checkbox checked={props.immuneToExplosion} onChange={(event) => updateProperties(index, { immuneToExplosion: event.target.checked })} />} label="Explosion immune" />
+                                    </Grid>
+                                    <Grid item xs={12} md={2.4}>
+                                      <FormControlLabel control={<Checkbox checked={props.immuneToProjectile} onChange={(event) => updateProperties(index, { immuneToProjectile: event.target.checked })} />} label="Projectile immune" />
+                                    </Grid>
+                                    <Grid item xs={12} md={3}>
+                                      <FormControlLabel control={<Checkbox checked={props.deathExplosion} onChange={(event) => updateProperties(index, { deathExplosion: event.target.checked })} />} label="Explode on death" />
+                                    </Grid>
+                                    <Grid item xs={12} sm={6} md={3}>
+                                      <TextField fullWidth disabled={!props.deathExplosion} type="number" label="Death explosion power" value={props.deathExplosionPower} inputProps={{ min: 0.1, step: 0.1 }} onChange={(event) => updateProperties(index, { deathExplosionPower: numberValue(event.target.value, props.deathExplosionPower) })} />
+                                    </Grid>
+                                    <Grid item xs={12} md={3}>
+                                      <FormControlLabel control={<Checkbox disabled={!props.deathExplosion} checked={props.deathExplosionFire} onChange={(event) => updateProperties(index, { deathExplosionFire: event.target.checked })} />} label="Death explosion fire" />
+                                    </Grid>
+                                    <Grid item xs={12} md={3}>
+                                      <FormControlLabel control={<Checkbox checked={props.deathSpawn} onChange={(event) => updateProperties(index, { deathSpawn: event.target.checked })} />} label="Spawn mobs on death" />
+                                    </Grid>
+                                    <Grid item xs={12} sm={6} md={3}>
+                                      <TextField fullWidth disabled={!props.deathSpawn} label="Death spawn entity" value={props.deathSpawnEntity} onChange={(event) => updateProperties(index, { deathSpawnEntity: event.target.value })} />
+                                    </Grid>
+                                    <Grid item xs={12} sm={6} md={3}>
+                                      <TextField fullWidth disabled={!props.deathSpawn} type="number" label="Death spawn count" value={props.deathSpawnCount} inputProps={{ min: 0, max: 50, step: 1 }} onChange={(event) => updateProperties(index, { deathSpawnCount: numberValue(event.target.value, props.deathSpawnCount) })} />
+                                    </Grid>
+                                    <Grid item xs={12} sm={6} md={3}>
+                                      <TextField fullWidth disabled={!props.deathSpawn} type="number" label="Death spawn chance %" value={Math.round((props.deathSpawnChance ?? 0) * 10000) / 100} inputProps={{ min: 0, max: 100, step: 1 }} onChange={(event) => updateProperties(index, { deathSpawnChance: clampPercent(numberValue(event.target.value, (props.deathSpawnChance ?? 0) * 100)) / 100 })} />
+                                    </Grid>
+                                  </Grid>
                                 </Stack>
                               </Box>
                             </Grid>

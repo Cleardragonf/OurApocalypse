@@ -6,6 +6,7 @@ import com.cwarner.apocalypsemobs.game.BlockPlacementLedger;
 import com.cwarner.apocalypsemobs.game.EconomyCommands;
 import com.cwarner.apocalypsemobs.game.EconomyDeathHandler;
 import com.cwarner.apocalypsemobs.game.EconomyWalletLedger;
+import com.cwarner.apocalypsemobs.game.MobAdvancedGoalController;
 import com.cwarner.apocalypsemobs.game.MobBehaviorController;
 import com.cwarner.apocalypsemobs.game.MobDropHandler;
 import com.cwarner.apocalypsemobs.game.SpecialMobGoalController;
@@ -33,6 +34,7 @@ public final class ApocalypseMobs {
         MinecraftForge.EVENT_BUS.register(new EconomyCommands());
         MinecraftForge.EVENT_BUS.register(new EconomyDeathHandler());
         MinecraftForge.EVENT_BUS.register(new WaveDirector());
+        MinecraftForge.EVENT_BUS.register(new MobAdvancedGoalController());
         MinecraftForge.EVENT_BUS.register(new MobBehaviorController());
         MinecraftForge.EVENT_BUS.register(new MobDropHandler());
         MinecraftForge.EVENT_BUS.register(new SpecialMobGoalController());

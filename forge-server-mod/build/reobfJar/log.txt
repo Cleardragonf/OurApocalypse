@@ -195,6 +195,7 @@ Writing Output: C:\Users\Chris\Documents\GitHub\Portal\OurApocalypse\forge-serve
   com/cwarner/apocalypsemobs/game/EconomyWalletLedger$WalletRecord.class
   com/cwarner/apocalypsemobs/game/EconomyWalletLedger$WalletState.class
   com/cwarner/apocalypsemobs/game/EconomyWalletLedger.class
+  com/cwarner/apocalypsemobs/game/MobAdvancedGoalController.class
   com/cwarner/apocalypsemobs/game/MobBehaviorController.class
   com/cwarner/apocalypsemobs/game/MobDropHandler$DamageShare.class
   com/cwarner/apocalypsemobs/game/MobDropHandler$SelectedNightProfile.class

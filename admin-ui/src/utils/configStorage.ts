@@ -132,6 +132,18 @@ export function defaultMobProperties(): MobProperties {
     spiderWebPlayers: false,
     spiderWebChance: 0,
     spiderWebCooldownTicks: 100,
+    preventSunBurn: false,
+    immuneToFire: false,
+    immuneToFall: false,
+    immuneToExplosion: false,
+    immuneToProjectile: false,
+    deathExplosion: false,
+    deathExplosionPower: 2,
+    deathExplosionFire: false,
+    deathSpawn: false,
+    deathSpawnEntity: "minecraft:zombie",
+    deathSpawnCount: 1,
+    deathSpawnChance: 1,
   };
 }
 

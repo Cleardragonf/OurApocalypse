@@ -90,6 +90,19 @@ public class MobProperties {
     public double spiderWebChance = 0.0D;
     public int spiderWebCooldownTicks = 100;
 
+    public boolean preventSunBurn = false;
+    public boolean immuneToFire = false;
+    public boolean immuneToFall = false;
+    public boolean immuneToExplosion = false;
+    public boolean immuneToProjectile = false;
+    public boolean deathExplosion = false;
+    public double deathExplosionPower = 2.0D;
+    public boolean deathExplosionFire = false;
+    public boolean deathSpawn = false;
+    public String deathSpawnEntity = "minecraft:zombie";
+    public int deathSpawnCount = 1;
+    public double deathSpawnChance = 1.0D;
+
     public MobProperties() {}
 
     public MobProperties(boolean enabled, double maxHealth, double attackDamage, double movementSpeed, double followRange, double armor, double armorToughness, double knockbackResistance, boolean persistent, String customName) {
@@ -229,6 +242,10 @@ public class MobProperties {
         endermanTeleportCooldownTicks = Math.max(20, endermanTeleportCooldownTicks);
         spiderWebChance = clampFinite(spiderWebChance, 0.0D, 1.0D, 0.0D);
         spiderWebCooldownTicks = Math.max(20, spiderWebCooldownTicks);
+        deathExplosionPower = clampFinite(deathExplosionPower, 0.1D, 12.0D, 2.0D);
+        if (deathSpawnEntity == null || deathSpawnEntity.isBlank()) deathSpawnEntity = "minecraft:zombie";
+        deathSpawnCount = Math.max(0, Math.min(50, deathSpawnCount));
+        deathSpawnChance = clampFinite(deathSpawnChance, 0.0D, 1.0D, 1.0D);
         if (effects == null) effects = new ArrayList<>();
         for (MobEffectRule effect : effects) if (effect != null) effect.sanitize();
         if (customName == null) customName = "";
