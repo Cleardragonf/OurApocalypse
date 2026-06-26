@@ -1,9 +1,10 @@
-import { Fragment, useState } from 'react';
+import { Fragment, useMemo, useState } from 'react';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import KeyboardArrowRightIcon from '@mui/icons-material/KeyboardArrowRight';
 import {
+  Autocomplete,
   Box,
   Button,
   Checkbox,
@@ -23,6 +24,7 @@ import {
   Typography
 } from '@mui/material';
 import type { EntityWeight, MobProperties, PropertyValueMode } from '../types';
+import { entityOptionLabel, entitySearchText, mergeEntityRegistryOptions, resolveEntityInput } from '../entityOptions';
 
 
 const HOSTILE_ENTITY_OPTIONS = [
@@ -62,8 +64,7 @@ const HOSTILE_ENTITY_OPTIONS = [
 ] as const;
 
 function entityLabel(entityId: string): string {
-  const found = HOSTILE_ENTITY_OPTIONS.find((option) => option.id === entityId);
-  return found ? `${found.label} (${found.id})` : entityId;
+  return entityOptionLabel(entityId);
 }
 
 type EffectiveEntityWeight = EntityWeight & {
@@ -75,6 +76,8 @@ type Props = {
   rows: EntityWeight[];
   effectiveRows: EffectiveEntityWeight[];
   onChange: (rows: EntityWeight[]) => void;
+  registryEntities?: string[];
+  onRefreshRegistryEntities?: () => void;
   selectionColumnLabel?: string;
 };
 
@@ -245,6 +248,35 @@ function defaultMobProperties(): MobProperties {
     breakBlocks: true,
     placeBlocks: true,
     bridgeGaps: true,
+    monsterAiWallAttack: false,
+    wallAttackUseBlockHp: true,
+    wallAttackCooldownTicks: 20,
+    wallAttackDamagePerHit: 1,
+    nerdPoleEnabled: false,
+    maxPillarHeight: 12,
+    pillarCooldownTicks: 40,
+    airBridgeEnabled: false,
+    maxBridgeLength: 24,
+    bridgeCooldownTicks: 40,
+    killAfterPillarOrBridge: false,
+    frustrationTicks: 100,
+    monsterAiBuildBlock: 'minecraft:cobblestone',
+    megaAggroEnabled: false,
+    daytimeMegaAggro: false,
+    sprintDistance: 18,
+    destroyTorches: false,
+    torchRadius: 5,
+    torchMinDay: 6,
+    naturalSpawnEnabled: false,
+    naturalSpawnMinLight: 0,
+    naturalSpawnMaxLight: 15,
+    naturalSpawnYMin: -64,
+    naturalSpawnYMax: 320,
+    naturalSpawnAllowWater: false,
+    naturalSpawnAllowAir: false,
+    naturalSpawnRequireBlockBelow: true,
+    naturalSpawnBlockMode: 'DISABLED',
+    naturalSpawnBlocks: [],
     explodingArrows: false,
     explodingArrowChance: 0,
     explodingArrowPower: 2,
@@ -389,7 +421,8 @@ function clearUnsupportedSpecialGoals(entity: string, props: MobProperties): Mob
   };
 }
 
-export default function EntityWeightsTable({ rows, effectiveRows, onChange, selectionColumnLabel = 'Selection Chance' }: Props) {
+export default function EntityWeightsTable({ rows, effectiveRows, onChange, registryEntities = [], onRefreshRegistryEntities, selectionColumnLabel = 'Selection Chance' }: Props) {
+  const entityOptions = useMemo(() => mergeEntityRegistryOptions(registryEntities, false), [registryEntities]);
   const effectiveByRow = new Map(effectiveRows.map((row) => [`${row.entity}|${row.minDay}|${row.weight}`, row]));
   const [expandedRows, setExpandedRows] = useState<Set<number>>(() => new Set());
 
@@ -424,14 +457,17 @@ export default function EntityWeightsTable({ rows, effectiveRows, onChange, sele
     <Stack spacing={2}>
       <Stack direction="row" alignItems="center" justifyContent="space-between">
         <div>
-          <Typography variant="h6">Weighted hostile entity pool</Typography>
+          <Typography variant="h6">Weighted entity pool</Typography>
           <Typography color="text.secondary" variant="body2">
-            Weight decides selection. Spawn Chance confirms the spawn. Mob Properties modify the spawned mob for this specific profile.
+            Weight decides selection. Spawn Chance confirms the spawn. Entities can be hostile, neutral, passive, or modded. Non-hostile entities must enable Natural/passive spawning in Props.
           </Typography>
         </div>
-        <Button startIcon={<AddIcon />} variant="contained" onClick={addRow}>
-          Add Entity
-        </Button>
+        <Stack direction="row" spacing={1} alignItems="center">
+          {onRefreshRegistryEntities ? <Button variant="outlined" onClick={onRefreshRegistryEntities}>Load Entity Registry</Button> : null}
+          <Button startIcon={<AddIcon />} variant="contained" onClick={addRow}>
+            Add Entity
+          </Button>
+        </Stack>
       </Stack>
 
       <Table size="small">
@@ -479,27 +515,30 @@ export default function EntityWeightsTable({ rows, effectiveRows, onChange, sele
                     <Checkbox checked={row.enabled} onChange={(event) => update(index, { enabled: event.target.checked })} />
                   </TableCell>
                   <TableCell>
-                    <TextField
-                      fullWidth
-                      select
-                      size="small"
-                      label="Entity"
+                    <Autocomplete
+                      freeSolo
+                      disableClearable
+                      options={entityOptions}
                       value={row.entity}
-                      onChange={(event) => {
-                        const nextEntity = event.target.value;
+                      getOptionLabel={(option) => entityLabel(option)}
+                      isOptionEqualToValue={(option, value) => option === value}
+                      filterOptions={(options, state) => {
+                        const query = state.inputValue.trim().toLowerCase();
+                        if (!query) return options.slice(0, 200);
+                        return options.filter((option) => entitySearchText(option).includes(query)).slice(0, 200);
+                      }}
+                      onChange={(_, value) => {
+                        const nextEntity = resolveEntityInput(value, entityOptions);
                         update(index, { entity: nextEntity, properties: clearUnsupportedSpecialGoals(nextEntity, props) });
                       }}
-                      helperText="Choose the mob to spawn"
-                    >
-                      {HOSTILE_ENTITY_OPTIONS.map((option) => (
-                        <MenuItem key={option.id} value={option.id}>
-                          {option.label} ({option.id})
-                        </MenuItem>
-                      ))}
-                      {!HOSTILE_ENTITY_OPTIONS.some((option) => option.id === row.entity) ? (
-                        <MenuItem value={row.entity}>{entityLabel(row.entity)}</MenuItem>
-                      ) : null}
-                    </TextField>
+                      onInputChange={(_, value, reason) => {
+                        if (reason !== 'input') return;
+                        const nextEntity = resolveEntityInput(value, entityOptions);
+                        update(index, { entity: nextEntity, properties: clearUnsupportedSpecialGoals(nextEntity, props) });
+                      }}
+                      renderInput={(params) => <TextField {...params} size="small" label="Entity" helperText="Choose hostile, passive, neutral, water, or modded entities" />}
+                      sx={{ minWidth: 280 }}
+                    />
                   </TableCell>
                   <TableCell width={105}>
                     <TextField type="number" value={row.weight} onChange={(event) => update(index, { weight: numberValue(event.target.value, row.weight) })} />
@@ -569,23 +608,178 @@ export default function EntityWeightsTable({ rows, effectiveRows, onChange, sele
                                   control={<Checkbox disabled={!props.enabled} checked={props.persistent} onChange={(event) => updateProperties(index, { persistent: event.target.checked, enabled: true })} />}
                                   label="Persistent mob"
                                 />
-                                <FormControlLabel
-                                  control={<Checkbox checked={props.targetPlayers} onChange={(event) => updateProperties(index, { targetPlayers: event.target.checked })} />}
-                                  label="Target and chase players"
-                                />
-                                <FormControlLabel
-                                  control={<Checkbox checked={props.breakBlocks} onChange={(event) => updateProperties(index, { breakBlocks: event.target.checked })} />}
-                                  label="Break blocking blocks"
-                                />
-                                <FormControlLabel
-                                  control={<Checkbox checked={props.placeBlocks} onChange={(event) => updateProperties(index, { placeBlocks: event.target.checked })} />}
-                                  label="Nerdpole / step up"
-                                />
-                                <FormControlLabel
-                                  control={<Checkbox checked={props.bridgeGaps} onChange={(event) => updateProperties(index, { bridgeGaps: event.target.checked })} />}
-                                  label="Bridge gaps"
-                                />
                               </Stack>
+                            </Grid>
+
+                            <Grid item xs={12}>
+                              <Box sx={{ mt: 1, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
+                                <Stack spacing={2}>
+                                  <div>
+                                    <Typography variant="subtitle2">Monster AI behavior for this spawn row</Typography>
+                                    <Typography variant="body2" color="text.secondary">
+                                      These are per-row behavior toggles. One zombie profile can nerd-pole while another zombie profile stays vanilla.
+                                    </Typography>
+                                  </div>
+                                  <Grid container spacing={2}>
+                                    <Grid item xs={12} md={3}>
+                                      <FormControlLabel
+                                        control={<Checkbox checked={props.megaAggroEnabled} onChange={(event) => updateProperties(index, { megaAggroEnabled: event.target.checked })} />}
+                                        label="Mega aggro"
+                                      />
+                                    </Grid>
+                                    <Grid item xs={12} md={3}>
+                                      <FormControlLabel
+                                        control={<Checkbox disabled={!props.megaAggroEnabled} checked={props.daytimeMegaAggro} onChange={(event) => updateProperties(index, { daytimeMegaAggro: event.target.checked })} />}
+                                        label="Daytime aggro"
+                                      />
+                                    </Grid>
+                                    <Grid item xs={12} sm={6} md={2}>
+                                      <TextField fullWidth disabled={!props.megaAggroEnabled} type="number" label="Sprint distance" value={props.sprintDistance} inputProps={{ min: 0, step: 1 }} onChange={(event) => updateProperties(index, { sprintDistance: numberValue(event.target.value, props.sprintDistance) })} />
+                                    </Grid>
+                                    <Grid item xs={12} md={3}>
+                                      <FormControlLabel
+                                        control={<Checkbox checked={props.destroyTorches} onChange={(event) => updateProperties(index, { destroyTorches: event.target.checked })} />}
+                                        label="Destroy torches"
+                                      />
+                                    </Grid>
+                                    <Grid item xs={12} sm={6} md={2}>
+                                      <TextField fullWidth disabled={!props.destroyTorches} type="number" label="Torch radius" value={props.torchRadius} inputProps={{ min: 1, step: 1 }} onChange={(event) => updateProperties(index, { torchRadius: numberValue(event.target.value, props.torchRadius) })} />
+                                    </Grid>
+                                    <Grid item xs={12} sm={6} md={2}>
+                                      <TextField fullWidth disabled={!props.destroyTorches} type="number" label="Torch min day" value={props.torchMinDay} inputProps={{ min: 1, max: 30, step: 1 }} onChange={(event) => updateProperties(index, { torchMinDay: numberValue(event.target.value, props.torchMinDay) })} />
+                                    </Grid>
+                                    <Grid item xs={12} md={3}>
+                                      <FormControlLabel
+                                        control={<Checkbox checked={props.monsterAiWallAttack} onChange={(event) => updateProperties(index, { monsterAiWallAttack: event.target.checked })} />}
+                                        label="Wall attack"
+                                      />
+                                    </Grid>
+                                    <Grid item xs={12} md={3}>
+                                      <FormControlLabel
+                                        control={<Checkbox disabled={!props.monsterAiWallAttack} checked={props.wallAttackUseBlockHp} onChange={(event) => updateProperties(index, { wallAttackUseBlockHp: event.target.checked })} />}
+                                        label="Wall block HP style"
+                                      />
+                                    </Grid>
+                                    <Grid item xs={12} sm={6} md={2}>
+                                      <TextField fullWidth disabled={!props.monsterAiWallAttack} type="number" label="Wall cooldown" value={props.wallAttackCooldownTicks} inputProps={{ min: 5, step: 5 }} onChange={(event) => updateProperties(index, { wallAttackCooldownTicks: numberValue(event.target.value, props.wallAttackCooldownTicks) })} />
+                                    </Grid>
+                                    <Grid item xs={12} sm={6} md={2}>
+                                      <TextField fullWidth disabled={!props.monsterAiWallAttack} type="number" label="Wall damage/hit" value={props.wallAttackDamagePerHit} inputProps={{ min: 0.1, step: 0.1 }} onChange={(event) => updateProperties(index, { wallAttackDamagePerHit: numberValue(event.target.value, props.wallAttackDamagePerHit) })} />
+                                    </Grid>
+                                    <Grid item xs={12} md={3}>
+                                      <FormControlLabel
+                                        control={<Checkbox checked={props.nerdPoleEnabled} onChange={(event) => updateProperties(index, { nerdPoleEnabled: event.target.checked })} />}
+                                        label="Nerd-pole up"
+                                      />
+                                    </Grid>
+                                    <Grid item xs={12} sm={6} md={2}>
+                                      <TextField fullWidth disabled={!props.nerdPoleEnabled} type="number" label="Max pillar height" value={props.maxPillarHeight} inputProps={{ min: 1, max: 128, step: 1 }} onChange={(event) => updateProperties(index, { maxPillarHeight: numberValue(event.target.value, props.maxPillarHeight) })} />
+                                    </Grid>
+                                    <Grid item xs={12} sm={6} md={2}>
+                                      <TextField fullWidth disabled={!props.nerdPoleEnabled} type="number" label="Pillar cooldown" value={props.pillarCooldownTicks} inputProps={{ min: 5, step: 5 }} onChange={(event) => updateProperties(index, { pillarCooldownTicks: numberValue(event.target.value, props.pillarCooldownTicks) })} />
+                                    </Grid>
+                                    <Grid item xs={12} md={3}>
+                                      <FormControlLabel
+                                        control={<Checkbox checked={props.airBridgeEnabled} onChange={(event) => updateProperties(index, { airBridgeEnabled: event.target.checked })} />}
+                                        label="Air bridge"
+                                      />
+                                    </Grid>
+                                    <Grid item xs={12} sm={6} md={2}>
+                                      <TextField fullWidth disabled={!props.airBridgeEnabled} type="number" label="Max bridge length" value={props.maxBridgeLength} inputProps={{ min: 1, max: 128, step: 1 }} onChange={(event) => updateProperties(index, { maxBridgeLength: numberValue(event.target.value, props.maxBridgeLength) })} />
+                                    </Grid>
+                                    <Grid item xs={12} sm={6} md={2}>
+                                      <TextField fullWidth disabled={!props.airBridgeEnabled} type="number" label="Bridge cooldown" value={props.bridgeCooldownTicks} inputProps={{ min: 5, step: 5 }} onChange={(event) => updateProperties(index, { bridgeCooldownTicks: numberValue(event.target.value, props.bridgeCooldownTicks) })} />
+                                    </Grid>
+                                    <Grid item xs={12} sm={6} md={2}>
+                                      <TextField fullWidth type="number" label="Frustration ticks" value={props.frustrationTicks} inputProps={{ min: 20, step: 20 }} onChange={(event) => updateProperties(index, { frustrationTicks: numberValue(event.target.value, props.frustrationTicks) })} />
+                                    </Grid>
+                                    <Grid item xs={12} md={3}>
+                                      <TextField fullWidth label="Build block" value={props.monsterAiBuildBlock} onChange={(event) => updateProperties(index, { monsterAiBuildBlock: event.target.value })} />
+                                    </Grid>
+                                    <Grid item xs={12} md={3}>
+                                      <FormControlLabel
+                                        control={<Checkbox disabled={!props.nerdPoleEnabled && !props.airBridgeEnabled} checked={props.killAfterPillarOrBridge} onChange={(event) => updateProperties(index, { killAfterPillarOrBridge: event.target.checked })} />}
+                                        label="Kill after building"
+                                      />
+                                    </Grid>
+                                  </Grid>
+                                </Stack>
+                              </Box>
+                            </Grid>
+
+                            <Grid item xs={12}>
+                              <Box sx={{ mt: 1, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
+                                <Stack spacing={2}>
+                                  <div>
+                                    <Typography variant="subtitle2">Natural / passive spawning for this row</Typography>
+                                    <Typography variant="body2" color="text.secondary">
+                                      Enable this when the row is a non-hostile entity like sheep, cows, villagers, fish, or other passive/modded mobs. It adds MonsterApocalypse-style natural spawn checks.
+                                    </Typography>
+                                  </div>
+                                  <Grid container spacing={2}>
+                                    <Grid item xs={12} md={3}>
+                                      <FormControlLabel
+                                        control={<Checkbox checked={props.naturalSpawnEnabled} onChange={(event) => updateProperties(index, { naturalSpawnEnabled: event.target.checked })} />}
+                                        label="Natural/passive spawn"
+                                      />
+                                    </Grid>
+                                    <Grid item xs={12} md={3}>
+                                      <FormControlLabel
+                                        control={<Checkbox disabled={!props.naturalSpawnEnabled} checked={props.naturalSpawnRequireBlockBelow} onChange={(event) => updateProperties(index, { naturalSpawnRequireBlockBelow: event.target.checked })} />}
+                                        label="Require ground below"
+                                      />
+                                    </Grid>
+                                    <Grid item xs={12} md={3}>
+                                      <FormControlLabel
+                                        control={<Checkbox disabled={!props.naturalSpawnEnabled} checked={props.naturalSpawnAllowWater} onChange={(event) => updateProperties(index, { naturalSpawnAllowWater: event.target.checked })} />}
+                                        label="Allow water"
+                                      />
+                                    </Grid>
+                                    <Grid item xs={12} md={3}>
+                                      <FormControlLabel
+                                        control={<Checkbox disabled={!props.naturalSpawnEnabled} checked={props.naturalSpawnAllowAir} onChange={(event) => updateProperties(index, { naturalSpawnAllowAir: event.target.checked })} />}
+                                        label="Allow air block below"
+                                      />
+                                    </Grid>
+                                    <Grid item xs={12} sm={6} md={2}>
+                                      <TextField fullWidth disabled={!props.naturalSpawnEnabled} type="number" label="Min light" value={props.naturalSpawnMinLight} inputProps={{ min: 0, max: 15, step: 1 }} onChange={(event) => updateProperties(index, { naturalSpawnMinLight: numberValue(event.target.value, props.naturalSpawnMinLight) })} />
+                                    </Grid>
+                                    <Grid item xs={12} sm={6} md={2}>
+                                      <TextField fullWidth disabled={!props.naturalSpawnEnabled} type="number" label="Max light" value={props.naturalSpawnMaxLight} inputProps={{ min: 0, max: 15, step: 1 }} onChange={(event) => updateProperties(index, { naturalSpawnMaxLight: numberValue(event.target.value, props.naturalSpawnMaxLight) })} />
+                                    </Grid>
+                                    <Grid item xs={12} sm={6} md={2}>
+                                      <TextField fullWidth disabled={!props.naturalSpawnEnabled} type="number" label="Min Y" value={props.naturalSpawnYMin} inputProps={{ step: 1 }} onChange={(event) => updateProperties(index, { naturalSpawnYMin: numberValue(event.target.value, props.naturalSpawnYMin) })} />
+                                    </Grid>
+                                    <Grid item xs={12} sm={6} md={2}>
+                                      <TextField fullWidth disabled={!props.naturalSpawnEnabled} type="number" label="Max Y" value={props.naturalSpawnYMax} inputProps={{ step: 1 }} onChange={(event) => updateProperties(index, { naturalSpawnYMax: numberValue(event.target.value, props.naturalSpawnYMax) })} />
+                                    </Grid>
+                                    <Grid item xs={12} sm={6} md={3}>
+                                      <TextField
+                                        fullWidth
+                                        select
+                                        disabled={!props.naturalSpawnEnabled}
+                                        label="Spawn block filter"
+                                        value={props.naturalSpawnBlockMode}
+                                        onChange={(event) => updateProperties(index, { naturalSpawnBlockMode: event.target.value as MobProperties['naturalSpawnBlockMode'] })}
+                                      >
+                                        <MenuItem value="DISABLED">Disabled</MenuItem>
+                                        <MenuItem value="BLACKLIST">Blacklist blocks</MenuItem>
+                                        <MenuItem value="WHITELIST">Whitelist blocks</MenuItem>
+                                      </TextField>
+                                    </Grid>
+                                    <Grid item xs={12} md={9}>
+                                      <TextField
+                                        fullWidth
+                                        disabled={!props.naturalSpawnEnabled || props.naturalSpawnBlockMode === 'DISABLED'}
+                                        label="Spawn blocks"
+                                        value={(props.naturalSpawnBlocks ?? []).join(', ')}
+                                        onChange={(event) => updateProperties(index, { naturalSpawnBlocks: event.target.value.split(',').map((value) => value.trim()).filter(Boolean) })}
+                                        helperText="Comma-separated block ids. Example: minecraft:grass_block, minecraft:sand"
+                                      />
+                                    </Grid>
+                                  </Grid>
+                                </Stack>
+                              </Box>
                             </Grid>
 
                             <Grid item xs={12}>

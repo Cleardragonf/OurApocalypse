@@ -258,7 +258,7 @@ public final class AdminHttpServer {
         MinecraftServer server = minecraftServer;
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("modId", ApocalypseMobs.MOD_ID);
-        result.put("modVersion", "1.7.0");
+        result.put("modVersion", "1.8.0");
         result.put("connected", true);
         result.put("communication", "REST_POLLING");
         result.put("configPath", ConfigManager.getConfigPath().toString());

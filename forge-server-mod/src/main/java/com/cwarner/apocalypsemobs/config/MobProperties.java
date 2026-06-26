@@ -1,5 +1,8 @@
 package com.cwarner.apocalypsemobs.config;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Optional per-entity property overrides applied immediately after an apocalypse mob spawns.
  * These are intentionally server-side vanilla attribute changes, so clients do not need this mod.
@@ -62,6 +65,40 @@ public class MobProperties {
     public boolean breakBlocks = true;
     public boolean placeBlocks = true;
     public boolean bridgeGaps = true;
+
+    /** Per-spawn MonsterApocalypse-style AI behavior. These are stored on spawned mobs so each row/profile can behave differently. */
+    public boolean monsterAiWallAttack = false;
+    public boolean wallAttackUseBlockHp = true;
+    public int wallAttackCooldownTicks = 20;
+    public double wallAttackDamagePerHit = 1.0D;
+    public boolean nerdPoleEnabled = false;
+    public int maxPillarHeight = 12;
+    public int pillarCooldownTicks = 40;
+    public boolean airBridgeEnabled = false;
+    public int maxBridgeLength = 24;
+    public int bridgeCooldownTicks = 40;
+    public boolean killAfterPillarOrBridge = false;
+    public int frustrationTicks = 100;
+    public String monsterAiBuildBlock = "minecraft:cobblestone";
+    public boolean megaAggroEnabled = false;
+    public boolean daytimeMegaAggro = false;
+    public int sprintDistance = 18;
+    public boolean destroyTorches = false;
+    public int torchRadius = 5;
+    public int torchMinDay = 6;
+
+    /** Per-row natural/passive spawning rules. Non-hostile entities only participate in apocalypse pools when this is enabled. */
+    public boolean naturalSpawnEnabled = false;
+    public int naturalSpawnMinLight = 0;
+    public int naturalSpawnMaxLight = 15;
+    public int naturalSpawnYMin = -64;
+    public int naturalSpawnYMax = 320;
+    public boolean naturalSpawnAllowWater = false;
+    public boolean naturalSpawnAllowAir = false;
+    public boolean naturalSpawnRequireBlockBelow = true;
+    /** DISABLED, BLACKLIST, or WHITELIST. */
+    public String naturalSpawnBlockMode = "DISABLED";
+    public List<String> naturalSpawnBlocks = new ArrayList<>();
 
     /** Skeletons, strays, pillagers, and other arrow shooters can make arrows explode on impact. */
     public boolean explodingArrows = false;
@@ -214,6 +251,37 @@ public class MobProperties {
             stepHeightMin = stepHeightMax;
             stepHeightMax = tmp;
         }
+
+        wallAttackCooldownTicks = Math.max(5, wallAttackCooldownTicks);
+        wallAttackDamagePerHit = clampFinite(wallAttackDamagePerHit, 0.1D, 64.0D, 1.0D);
+        maxPillarHeight = Math.max(1, Math.min(128, maxPillarHeight));
+        pillarCooldownTicks = Math.max(5, pillarCooldownTicks);
+        maxBridgeLength = Math.max(1, Math.min(128, maxBridgeLength));
+        bridgeCooldownTicks = Math.max(5, bridgeCooldownTicks);
+        frustrationTicks = Math.max(20, frustrationTicks);
+        if (monsterAiBuildBlock == null || monsterAiBuildBlock.isBlank()) monsterAiBuildBlock = "minecraft:cobblestone";
+        monsterAiBuildBlock = monsterAiBuildBlock.trim();
+        sprintDistance = Math.max(0, sprintDistance);
+        torchRadius = Math.max(1, Math.min(32, torchRadius));
+        torchMinDay = Math.max(1, Math.min(30, torchMinDay));
+        naturalSpawnMinLight = Math.max(0, Math.min(15, naturalSpawnMinLight));
+        naturalSpawnMaxLight = Math.max(0, Math.min(15, naturalSpawnMaxLight));
+        if (naturalSpawnMinLight > naturalSpawnMaxLight) {
+            int tmp = naturalSpawnMinLight;
+            naturalSpawnMinLight = naturalSpawnMaxLight;
+            naturalSpawnMaxLight = tmp;
+        }
+        if (naturalSpawnYMin > naturalSpawnYMax) {
+            int tmp = naturalSpawnYMin;
+            naturalSpawnYMin = naturalSpawnYMax;
+            naturalSpawnYMax = tmp;
+        }
+        if (naturalSpawnBlockMode == null || naturalSpawnBlockMode.isBlank()) naturalSpawnBlockMode = "DISABLED";
+        naturalSpawnBlockMode = naturalSpawnBlockMode.trim().toUpperCase(java.util.Locale.ROOT);
+        if (!naturalSpawnBlockMode.equals("BLACKLIST") && !naturalSpawnBlockMode.equals("WHITELIST")) naturalSpawnBlockMode = "DISABLED";
+        if (naturalSpawnBlocks == null) naturalSpawnBlocks = new ArrayList<>();
+        naturalSpawnBlocks.removeIf(value -> value == null || value.isBlank());
+        naturalSpawnBlocks.replaceAll(String::trim);
 
         explodingArrowChance = clampFinite(explodingArrowChance, 0.0D, 1.0D, 0.0D);
         explodingArrowPower = clampFinite(explodingArrowPower, 0.1D, 12.0D, 2.0D);

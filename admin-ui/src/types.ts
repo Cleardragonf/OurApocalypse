@@ -42,6 +42,36 @@ export type MobProperties = {
   breakBlocks: boolean;
   placeBlocks: boolean;
   bridgeGaps: boolean;
+  monsterAiWallAttack: boolean;
+  wallAttackUseBlockHp: boolean;
+  wallAttackCooldownTicks: number;
+  wallAttackDamagePerHit: number;
+  nerdPoleEnabled: boolean;
+  maxPillarHeight: number;
+  pillarCooldownTicks: number;
+  airBridgeEnabled: boolean;
+  maxBridgeLength: number;
+  bridgeCooldownTicks: number;
+  killAfterPillarOrBridge: boolean;
+  frustrationTicks: number;
+  monsterAiBuildBlock: string;
+  megaAggroEnabled: boolean;
+  daytimeMegaAggro: boolean;
+  sprintDistance: number;
+  destroyTorches: boolean;
+  torchRadius: number;
+  torchMinDay: number;
+  /** Enables MonsterApocalypse-style natural/passive spawn placement checks for non-hostile entities. */
+  naturalSpawnEnabled: boolean;
+  naturalSpawnMinLight: number;
+  naturalSpawnMaxLight: number;
+  naturalSpawnYMin: number;
+  naturalSpawnYMax: number;
+  naturalSpawnAllowWater: boolean;
+  naturalSpawnAllowAir: boolean;
+  naturalSpawnRequireBlockBelow: boolean;
+  naturalSpawnBlockMode: "DISABLED" | "BLACKLIST" | "WHITELIST";
+  naturalSpawnBlocks: string[];
   explodingArrows: boolean;
   explodingArrowChance: number;
   explodingArrowPower: number;
@@ -298,6 +328,86 @@ export type EconomyConfig = {
   };
 };
 
+
+export type MonsterApocalypseSpawnPoint = {
+  id: string;
+  name: string;
+  enabled: boolean;
+  dimension: string;
+  x: number;
+  y: number;
+  z: number;
+  entity: string;
+  periodTicks: number;
+  count: number;
+  minLight: number;
+  maxLight: number;
+  chance: number;
+};
+
+export type MonsterApocalypseConfig = {
+  enabled: boolean;
+  note: string;
+  nightmare: {
+    alwaysNight: boolean;
+    multiplier: number;
+    periodTicks: number;
+    exponential: boolean;
+  };
+  bonusSpawns: {
+    enabled: boolean;
+    monstersPerPlayer: number;
+    spawnChance: number;
+    periodTicks: number;
+    minDistance: number;
+    maxDistance: number;
+    yOffset: number;
+    minLight: number;
+    maxLight: number;
+    spawnInAir: boolean;
+    naturalisticEnabled: boolean;
+    naturalisticAttemptsPerTick: number;
+    naturalisticCountPerSpot: number;
+    naturalisticYMin: number;
+    naturalisticYMax: number;
+  };
+  monsterBehavior: {
+    megaAggroEnabled: boolean;
+    daytimeMegaAggro: boolean;
+    sprintDistance: number;
+    destroyTorches: boolean;
+    torchRadius: number;
+    torchMinDay: number;
+    zombieWallAttack: boolean;
+    wallAttackUseBlockHp: boolean;
+    wallAttackCooldownTicks: number;
+    wallAttackDamagePerHit: number;
+    pillarUp: boolean;
+    maxPillarHeight: number;
+    pillarCooldownTicks: number;
+    airBridge: boolean;
+    maxBridgeLength: number;
+    bridgeCooldownTicks: number;
+    killAfterPillarOrBridge: boolean;
+    frustrationTicks: number;
+    buildingBlock: string;
+    superSkeletons: boolean;
+    witherSkeletonSuperArrows: boolean;
+    superArrowPeriodTicks: number;
+    superArrowChance: number;
+    superArrowRangeXZ: number;
+    superArrowRangeY: number;
+    superArrowPlayerProtectionRadius: number;
+    actionRpgDamagePeriodMs: number;
+  };
+  spawnBlockFilter: {
+    enabled: boolean;
+    invertToWhitelist: boolean;
+    blocks: string[];
+  };
+  spawnPoints: MonsterApocalypseSpawnPoint[];
+};
+
 export type ClearLagConfig = {
   enabled: boolean;
   intervalSeconds: number;
@@ -481,6 +591,7 @@ export type ApocalypseConfig = {
   scheduledEvents: ScheduledEventsConfig;
   clearLag: ClearLagConfig;
   economy: EconomyConfig;
+  monsterApocalypse: MonsterApocalypseConfig;
   /** Legacy hidden field from the old separate Rewards tab. New XP rewards live on drops.rules. */
   rewards?: RewardsConfig;
   integrations: IntegrationsConfig;

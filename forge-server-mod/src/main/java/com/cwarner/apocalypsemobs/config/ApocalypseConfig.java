@@ -20,6 +20,7 @@ public class ApocalypseConfig {
     public ScheduledEventSettings scheduledEvents = new ScheduledEventSettings();
     public ClearLagSettings clearLag = new ClearLagSettings();
     public EconomySettings economy = new EconomySettings();
+    public MonsterApocalypseSettings monsterApocalypse = new MonsterApocalypseSettings();
     public IntegrationSettings integrations = new IntegrationSettings();
     public CleanupSettings cleanup = new CleanupSettings();
 
@@ -39,6 +40,7 @@ public class ApocalypseConfig {
         if (scheduledEvents == null) scheduledEvents = new ScheduledEventSettings();
         if (clearLag == null) clearLag = new ClearLagSettings();
         if (economy == null) economy = new EconomySettings();
+        if (monsterApocalypse == null) monsterApocalypse = new MonsterApocalypseSettings();
         if (integrations == null) integrations = new IntegrationSettings();
         if (cleanup == null) cleanup = new CleanupSettings();
         if (entityWeights == null) entityWeights = defaultEntityWeights();
@@ -53,6 +55,7 @@ public class ApocalypseConfig {
         scheduledEvents.sanitize();
         clearLag.sanitize();
         economy.sanitize();
+        monsterApocalypse.sanitize();
         integrations.sanitize();
         cleanup.sanitize();
         for (EntityWeight weight : entityWeights) if (weight != null) weight.sanitize();
@@ -350,6 +353,186 @@ public class ApocalypseConfig {
             result.add("minecraft:repeating_command_block");
             result.add("minecraft:barrier");
             return result;
+        }
+    }
+
+
+    public static class MonsterApocalypseSettings {
+        public boolean enabled = true;
+        public String note = "UI-owned MonsterApocalypse-style controls.";
+        public MonsterApocalypseNightmareSettings nightmare = new MonsterApocalypseNightmareSettings();
+        public MonsterApocalypseBonusSpawnSettings bonusSpawns = new MonsterApocalypseBonusSpawnSettings();
+        public MonsterApocalypseBehaviorSettings monsterBehavior = new MonsterApocalypseBehaviorSettings();
+        public MonsterApocalypseSpawnBlockFilter spawnBlockFilter = new MonsterApocalypseSpawnBlockFilter();
+        public List<MonsterApocalypseSpawnPoint> spawnPoints = defaultSpawnPoints();
+
+        public void sanitize() {
+            if (note == null) note = "";
+            if (nightmare == null) nightmare = new MonsterApocalypseNightmareSettings();
+            if (bonusSpawns == null) bonusSpawns = new MonsterApocalypseBonusSpawnSettings();
+            if (monsterBehavior == null) monsterBehavior = new MonsterApocalypseBehaviorSettings();
+            if (spawnBlockFilter == null) spawnBlockFilter = new MonsterApocalypseSpawnBlockFilter();
+            if (spawnPoints == null) spawnPoints = defaultSpawnPoints();
+            nightmare.sanitize();
+            bonusSpawns.sanitize();
+            monsterBehavior.sanitize();
+            spawnBlockFilter.sanitize();
+            for (MonsterApocalypseSpawnPoint point : spawnPoints) if (point != null) point.sanitize();
+        }
+
+        private static List<MonsterApocalypseSpawnPoint> defaultSpawnPoints() {
+            List<MonsterApocalypseSpawnPoint> result = new ArrayList<>();
+            result.add(new MonsterApocalypseSpawnPoint("ma-spawnpoint-example", "Example Spawn Point", false));
+            return result;
+        }
+    }
+
+    public static class MonsterApocalypseNightmareSettings {
+        public boolean alwaysNight = false;
+        public double multiplier = 1.0D;
+        public int periodTicks = 24000;
+        public boolean exponential = false;
+
+        public void sanitize() {
+            multiplier = Math.max(0.0D, multiplier);
+            periodTicks = Math.max(20, periodTicks);
+        }
+    }
+
+    public static class MonsterApocalypseBonusSpawnSettings {
+        public boolean enabled = true;
+        public int monstersPerPlayer = 4;
+        public double spawnChance = 0.35D;
+        public int periodTicks = 1200;
+        public int minDistance = 24;
+        public int maxDistance = 64;
+        public int yOffset = 0;
+        public int minLight = 0;
+        public int maxLight = 7;
+        public boolean spawnInAir = false;
+        public boolean naturalisticEnabled = false;
+        public int naturalisticAttemptsPerTick = 8;
+        public int naturalisticCountPerSpot = 2;
+        public int naturalisticYMin = -64;
+        public int naturalisticYMax = 320;
+
+        public void sanitize() {
+            monstersPerPlayer = Math.max(0, monstersPerPlayer);
+            spawnChance = clamp(spawnChance, 0.0D, 1.0D);
+            periodTicks = Math.max(20, periodTicks);
+            minDistance = Math.max(0, minDistance);
+            maxDistance = Math.max(minDistance, maxDistance);
+            minLight = clamp(minLight, 0, 15);
+            maxLight = clamp(maxLight, minLight, 15);
+            naturalisticAttemptsPerTick = Math.max(0, naturalisticAttemptsPerTick);
+            naturalisticCountPerSpot = Math.max(0, naturalisticCountPerSpot);
+            naturalisticYMax = Math.max(naturalisticYMin, naturalisticYMax);
+        }
+    }
+
+    public static class MonsterApocalypseBehaviorSettings {
+        public boolean megaAggroEnabled = true;
+        public boolean daytimeMegaAggro = false;
+        public int sprintDistance = 18;
+        public boolean destroyTorches = false;
+        public int torchRadius = 5;
+        public int torchMinDay = 6;
+        public boolean zombieWallAttack = true;
+        public boolean wallAttackUseBlockHp = true;
+        public int wallAttackCooldownTicks = 20;
+        public double wallAttackDamagePerHit = 1.0D;
+        public boolean pillarUp = true;
+        public int maxPillarHeight = 12;
+        public int pillarCooldownTicks = 40;
+        public boolean airBridge = true;
+        public int maxBridgeLength = 24;
+        public int bridgeCooldownTicks = 40;
+        public boolean killAfterPillarOrBridge = false;
+        public int frustrationTicks = 100;
+        public String buildingBlock = "minecraft:cobblestone";
+        public boolean superSkeletons = true;
+        public boolean witherSkeletonSuperArrows = true;
+        public int superArrowPeriodTicks = 80;
+        public double superArrowChance = 0.15D;
+        public int superArrowRangeXZ = 48;
+        public int superArrowRangeY = 20;
+        public int superArrowPlayerProtectionRadius = 8;
+        public int actionRpgDamagePeriodMs = 500;
+
+        public void sanitize() {
+            sprintDistance = Math.max(0, sprintDistance);
+            torchRadius = clamp(torchRadius, 1, 32);
+            torchMinDay = clamp(torchMinDay, 1, 30);
+            wallAttackCooldownTicks = Math.max(5, wallAttackCooldownTicks);
+            wallAttackDamagePerHit = Math.max(0.1D, wallAttackDamagePerHit);
+            maxPillarHeight = clamp(maxPillarHeight, 1, 128);
+            pillarCooldownTicks = Math.max(5, pillarCooldownTicks);
+            maxBridgeLength = clamp(maxBridgeLength, 1, 128);
+            bridgeCooldownTicks = Math.max(5, bridgeCooldownTicks);
+            frustrationTicks = Math.max(20, frustrationTicks);
+            if (buildingBlock == null || buildingBlock.isBlank()) buildingBlock = "minecraft:cobblestone";
+            superArrowPeriodTicks = Math.max(20, superArrowPeriodTicks);
+            superArrowChance = clamp(superArrowChance, 0.0D, 1.0D);
+            superArrowRangeXZ = Math.max(1, superArrowRangeXZ);
+            superArrowRangeY = Math.max(1, superArrowRangeY);
+            superArrowPlayerProtectionRadius = Math.max(0, superArrowPlayerProtectionRadius);
+            actionRpgDamagePeriodMs = Math.max(0, actionRpgDamagePeriodMs);
+        }
+    }
+
+    public static class MonsterApocalypseSpawnBlockFilter {
+        public boolean enabled = false;
+        public boolean invertToWhitelist = false;
+        public Set<String> blocks = defaultBlocks();
+
+        public void sanitize() {
+            if (blocks == null) blocks = defaultBlocks();
+            blocks.removeIf(value -> value == null || value.isBlank());
+        }
+
+        private static Set<String> defaultBlocks() {
+            Set<String> result = new LinkedHashSet<>();
+            result.add("minecraft:bedrock");
+            result.add("minecraft:water");
+            result.add("minecraft:lava");
+            result.add("minecraft:oak_leaves");
+            return result;
+        }
+    }
+
+    public static class MonsterApocalypseSpawnPoint {
+        public String id = "ma-spawnpoint";
+        public String name = "Spawn Point";
+        public boolean enabled = false;
+        public String dimension = "minecraft:overworld";
+        public int x = 0;
+        public int y = 80;
+        public int z = 0;
+        public String entity = "minecraft:zombie";
+        public int periodTicks = 1200;
+        public int count = 4;
+        public int minLight = 0;
+        public int maxLight = 7;
+        public double chance = 1.0D;
+
+        public MonsterApocalypseSpawnPoint() {}
+
+        public MonsterApocalypseSpawnPoint(String id, String name, boolean enabled) {
+            this.id = id;
+            this.name = name;
+            this.enabled = enabled;
+        }
+
+        public void sanitize() {
+            if (id == null || id.isBlank()) id = "ma-spawnpoint";
+            if (name == null || name.isBlank()) name = id;
+            if (dimension == null || dimension.isBlank()) dimension = "minecraft:overworld";
+            if (entity == null || entity.isBlank()) entity = "minecraft:zombie";
+            periodTicks = Math.max(20, periodTicks);
+            count = Math.max(1, count);
+            minLight = clamp(minLight, 0, 15);
+            maxLight = clamp(maxLight, minLight, 15);
+            chance = clamp(chance, 0.0D, 1.0D);
         }
     }
 

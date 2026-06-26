@@ -35,6 +35,25 @@ public final class MobPropertyApplier {
     public static final String SPIDER_WEB_PLAYERS_TAG = "ApocalypseMobsSpiderWebPlayers";
     public static final String SPIDER_WEB_CHANCE_TAG = "ApocalypseMobsSpiderWebChance";
     public static final String SPIDER_WEB_COOLDOWN_TAG = "ApocalypseMobsSpiderWebCooldown";
+    public static final String MONSTER_AI_WALL_ATTACK_TAG = "ApocalypseMobsMonsterAiWallAttack";
+    public static final String WALL_ATTACK_USE_BLOCK_HP_TAG = "ApocalypseMobsWallAttackUseBlockHp";
+    public static final String WALL_ATTACK_COOLDOWN_TAG = "ApocalypseMobsWallAttackCooldown";
+    public static final String WALL_ATTACK_DAMAGE_TAG = "ApocalypseMobsWallAttackDamage";
+    public static final String NERD_POLE_ENABLED_TAG = "ApocalypseMobsNerdPoleEnabled";
+    public static final String MAX_PILLAR_HEIGHT_TAG = "ApocalypseMobsMaxPillarHeight";
+    public static final String PILLAR_COOLDOWN_TAG = "ApocalypseMobsPillarCooldown";
+    public static final String AIR_BRIDGE_ENABLED_TAG = "ApocalypseMobsAirBridgeEnabled";
+    public static final String MAX_BRIDGE_LENGTH_TAG = "ApocalypseMobsMaxBridgeLength";
+    public static final String BRIDGE_COOLDOWN_TAG = "ApocalypseMobsBridgeCooldown";
+    public static final String KILL_AFTER_BUILDING_TAG = "ApocalypseMobsKillAfterBuilding";
+    public static final String FRUSTRATION_TICKS_TAG = "ApocalypseMobsFrustrationTicks";
+    public static final String MONSTER_AI_BUILD_BLOCK_TAG = "ApocalypseMobsBuildBlock";
+    public static final String MEGA_AGGRO_ENABLED_TAG = "ApocalypseMobsMegaAggroEnabled";
+    public static final String DAYTIME_MEGA_AGGRO_TAG = "ApocalypseMobsDaytimeMegaAggro";
+    public static final String SPRINT_DISTANCE_TAG = "ApocalypseMobsSprintDistance";
+    public static final String DESTROY_TORCHES_TAG = "ApocalypseMobsDestroyTorches";
+    public static final String TORCH_RADIUS_TAG = "ApocalypseMobsTorchRadius";
+    public static final String TORCH_MIN_DAY_TAG = "ApocalypseMobsTorchMinDay";
 
     private MobPropertyApplier() {}
 
@@ -60,6 +79,25 @@ public final class MobPropertyApplier {
         entity.getPersistentData().putBoolean(SPIDER_WEB_PLAYERS_TAG, properties.spiderWebPlayers && supportsSpiderWebPlayers(entity));
         entity.getPersistentData().putDouble(SPIDER_WEB_CHANCE_TAG, properties.spiderWebChance);
         entity.getPersistentData().putInt(SPIDER_WEB_COOLDOWN_TAG, properties.spiderWebCooldownTicks);
+        entity.getPersistentData().putBoolean(MONSTER_AI_WALL_ATTACK_TAG, properties.monsterAiWallAttack);
+        entity.getPersistentData().putBoolean(WALL_ATTACK_USE_BLOCK_HP_TAG, properties.wallAttackUseBlockHp);
+        entity.getPersistentData().putInt(WALL_ATTACK_COOLDOWN_TAG, properties.wallAttackCooldownTicks);
+        entity.getPersistentData().putDouble(WALL_ATTACK_DAMAGE_TAG, properties.wallAttackDamagePerHit);
+        entity.getPersistentData().putBoolean(NERD_POLE_ENABLED_TAG, properties.nerdPoleEnabled);
+        entity.getPersistentData().putInt(MAX_PILLAR_HEIGHT_TAG, properties.maxPillarHeight);
+        entity.getPersistentData().putInt(PILLAR_COOLDOWN_TAG, properties.pillarCooldownTicks);
+        entity.getPersistentData().putBoolean(AIR_BRIDGE_ENABLED_TAG, properties.airBridgeEnabled);
+        entity.getPersistentData().putInt(MAX_BRIDGE_LENGTH_TAG, properties.maxBridgeLength);
+        entity.getPersistentData().putInt(BRIDGE_COOLDOWN_TAG, properties.bridgeCooldownTicks);
+        entity.getPersistentData().putBoolean(KILL_AFTER_BUILDING_TAG, properties.killAfterPillarOrBridge);
+        entity.getPersistentData().putInt(FRUSTRATION_TICKS_TAG, properties.frustrationTicks);
+        entity.getPersistentData().putString(MONSTER_AI_BUILD_BLOCK_TAG, properties.monsterAiBuildBlock == null || properties.monsterAiBuildBlock.isBlank() ? "minecraft:cobblestone" : properties.monsterAiBuildBlock);
+        entity.getPersistentData().putBoolean(MEGA_AGGRO_ENABLED_TAG, properties.megaAggroEnabled);
+        entity.getPersistentData().putBoolean(DAYTIME_MEGA_AGGRO_TAG, properties.daytimeMegaAggro);
+        entity.getPersistentData().putInt(SPRINT_DISTANCE_TAG, properties.sprintDistance);
+        entity.getPersistentData().putBoolean(DESTROY_TORCHES_TAG, properties.destroyTorches);
+        entity.getPersistentData().putInt(TORCH_RADIUS_TAG, properties.torchRadius);
+        entity.getPersistentData().putInt(TORCH_MIN_DAY_TAG, properties.torchMinDay);
 
         if (!properties.enabled) return;
 

@@ -11,7 +11,6 @@ import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.item.ItemEntity;
-import net.minecraft.world.entity.monster.Monster;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -30,13 +29,13 @@ public final class MobDropHandler {
 
     @SubscribeEvent
     public void onLivingDrops(LivingDropsEvent event) {
-        if (!(event.getEntity() instanceof Monster monster)) return;
-        if (!(monster.level() instanceof ServerLevel level)) return;
+        if (!(event.getEntity() instanceof LivingEntity living)) return;
+        if (!(living.level() instanceof ServerLevel level)) return;
         ApocalypseConfig config = ConfigManager.get();
         if (!config.enabled || !config.drops.enabled) return;
 
         int difficultyDay = DifficultyCalculator.getDifficultyDay(level);
-        String entityId = EntityType.getKey(monster.getType()).toString();
+        String entityId = EntityType.getKey(living.getType()).toString();
         DropProfile profile = config.drops.useNightProfiles() ? selectedNightProfile(level, config, difficultyDay) : null;
         List<DropRule> rules = profile != null ? profile.rules : config.drops.rules;
         if (rules == null || rules.isEmpty()) return;
@@ -49,8 +48,8 @@ public final class MobDropHandler {
             if (rule == null || !rule.enabled || rule.item == null || rule.entity == null) continue;
             if (difficultyDay < rule.minDay) continue;
             if (!"*".equals(rule.entity) && !rule.entity.equals(entityId)) continue;
-            rollItemDrop(event, level, monster, rule);
-            rollOurMagicReward(level, monster, rule, entityId);
+            rollItemDrop(event, level, living, rule);
+            rollOurMagicReward(level, living, rule, entityId);
         }
     }
 
@@ -119,7 +118,7 @@ public final class MobDropHandler {
         }
     }
 
-    private static void rollItemDrop(LivingDropsEvent event, ServerLevel level, Monster monster, DropRule rule) {
+    private static void rollItemDrop(LivingDropsEvent event, ServerLevel level, LivingEntity living, DropRule rule) {
         if (level.random.nextDouble() > rule.chance) return;
         Optional<Item> optionalItem = BuiltInRegistries.ITEM.getOptional(new ResourceLocation(rule.item));
         if (optionalItem.isEmpty()) return;
@@ -127,10 +126,10 @@ public final class MobDropHandler {
         if (rule.maxCount > rule.minCount) count += level.random.nextInt(rule.maxCount - rule.minCount + 1);
         if (count <= 0) return;
         ItemStack stack = new ItemStack(optionalItem.get(), count);
-        event.getDrops().add(new ItemEntity(level, monster.getX(), monster.getY(), monster.getZ(), stack));
+        event.getDrops().add(new ItemEntity(level, living.getX(), living.getY(), living.getZ(), stack));
     }
 
-    private static void rollOurMagicReward(ServerLevel level, Monster monster, DropRule rule, String entityId) {
+    private static void rollOurMagicReward(ServerLevel level, LivingEntity living, DropRule rule, String entityId) {
         if (!rule.ourMagicRewardEnabled || level.random.nextDouble() > rule.ourMagicRewardChance) return;
         int amount = rule.ourMagicRewardMinExperience;
         if (rule.ourMagicRewardMaxExperience > rule.ourMagicRewardMinExperience) {
@@ -138,18 +137,18 @@ public final class MobDropHandler {
         }
         if (amount <= 0) return;
 
-        for (ServerPlayer player : resolveRewardTargets(level, monster, rule.ourMagicRewardTargetMode)) {
+        for (ServerPlayer player : resolveRewardTargets(level, living, rule.ourMagicRewardTargetMode)) {
             OurMagicGatewayClient.grantExperience(level, player, amount, rule.ourMagicRewardReason, "apocalypse-mobs", entityId, rule.ourMagicRewardTargetMode);
         }
     }
 
-    private static List<ServerPlayer> resolveRewardTargets(ServerLevel level, Monster monster, String targetMode) {
+    private static List<ServerPlayer> resolveRewardTargets(ServerLevel level, LivingEntity living, String targetMode) {
         if ("ALL_PLAYERS".equals(targetMode)) return level.players();
         if ("NEAREST_PLAYER".equals(targetMode)) {
-            Player nearest = level.getNearestPlayer(monster, 64.0D);
+            Player nearest = level.getNearestPlayer(living, 64.0D);
             return nearest instanceof ServerPlayer serverPlayer ? List.of(serverPlayer) : List.of();
         }
-        LivingEntity killer = monster.getKillCredit();
+        LivingEntity killer = living.getKillCredit();
         return killer instanceof ServerPlayer serverPlayer ? List.of(serverPlayer) : List.of();
     }
 

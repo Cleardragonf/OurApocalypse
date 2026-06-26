@@ -21,7 +21,7 @@ This project includes:
 - night wave director
 - **legacy + nightly weighted wave profiles**
 - **legacy + nightly weighted entity spawn profiles**
-- weighted hostile entity randomizer
+- weighted entity randomizer for hostile, neutral, passive, water, and modded entity types
 - per-entity spawn chance after selection
 - per-profile mob property modifiers, such as stronger zombies in specific entity pools
 - day 1-30 difficulty scaling
@@ -187,7 +187,7 @@ That means night 12 could roll a normal `Midnight Surge`, while another night in
 
 ### Entity spawn profiles
 
-`entitySpawning.activeMode` controls which hostile entity pool is used.
+`entitySpawning.activeMode` controls which entity pool is used. Hostile mobs work normally; non-hostile entities like sheep, cows, villagers, and fish use the per-row Natural/passive spawning options.
 
 In `LEGACY_RULES`, every spawn attempt uses `entitySpawning.legacyWeights`. The legacy top-level `entityWeights` field is still mirrored for older configs.
 
@@ -218,6 +218,30 @@ If the selected entity pool totals 100 and Ghast has weight 30, Ghast has a 30% 
 30% selection chance × 35% spawn chance = 10.5% actual chance per spawn attempt
 ```
 
+
+
+### Natural / passive entity rows
+
+Entity rows are no longer limited to hostile mobs. The UI can load the live Forge entity registry from `GET /api/registry/entities`, and it also has an offline vanilla fallback list containing animals, villagers, water mobs, neutral mobs, hostile mobs, and `minecraft:player` for drop/economy targeting.
+
+For spawning, passive/non-hostile entities must enable **Natural/passive spawn** under:
+
+```text
+Apocalypse → Entities → Props → Natural / passive spawning for this row
+```
+
+Those per-row options include:
+
+```text
+- min/max light
+- min/max Y
+- require ground below
+- allow water
+- allow air below
+- spawn block blacklist / whitelist
+```
+
+So one entity pool can spawn normal hostile apocalypse mobs while another row can add controlled cows, sheep, villagers, fish, or modded non-hostile entities with natural-style placement checks.
 
 ### Per-profile mob properties
 
@@ -441,7 +465,7 @@ Example:
 }
 ```
 
-The drop-rule `entity` field is a dropdown in the UI. Choose a specific hostile entity id, or choose `All hostile mobs (*)` to write `*` into the config and apply that rule to every hostile mob.
+The drop-rule `entity` field is an autocomplete in the UI. Choose a specific entity id, including passive animals, villagers, players, or modded entities, or choose `All entities (*)` to write `*` into the config and apply that rule to every living entity drop event.
 
 The drop-rule `item` field is an autocomplete/dropdown. When the mod REST API is online, the UI can load the live Forge item registry from:
 
@@ -722,3 +746,63 @@ Use this when a specific drop profile/entity/min-day row should pay differently 
 ```
 
 This adds the UI/config model only. The server-side balance ledger, AFK timer, death penalty executor, kill reward payout, and market purchase executor can be wired after the UI shape feels right.
+
+---
+
+## MonsterApocalypse reference mapping
+
+The uploaded `MonsterApocalypse_19.8.jar` is a Bukkit/Spigot plugin, not a Forge mod. I inspected its plugin metadata, class names, and config-facing keys and used it as a behavior reference rather than copying code.
+
+The old plugin exposes YAML-style settings for:
+
+```text
+bonus spawns
+naturalistic bonus spawns
+nightmare / always-night behavior
+mega-aggro targeting
+zombie wall attacking
+monster torch destruction
+nerd-poling / air-bridging
+super skeleton arrows
+spawn block blacklist / whitelist
+named spawn points
+custom drops and per-mob properties
+```
+
+The old separate **Monster AI** tab has been removed. Per-spawn behavior now lives under:
+
+```text
+Apocalypse → Entities → Props → Monster AI behavior for this spawn row
+```
+
+That means one profile row for `minecraft:zombie` can nerd-pole, air-bridge, wall-attack, or destroy torches while another zombie row stays vanilla.
+
+The UI still owns the config. The Forge mod receives it through the existing Admin REST API:
+
+```text
+PUT /api/config
+```
+
+Implemented server-side from the MonsterApocalypse-style controls:
+
+```text
+- always-night wave behavior
+- nightmare multiplier scaling for wave count / wave mob count
+- spawn-block blacklist / whitelist checks
+- light-level checks for apocalypse spawn placement
+- UI-managed spawn-point spawners
+- per-spawn mob torch destruction
+- per-spawn mega-aggro target refresh and sprint pressure
+- per-spawn stuck detection using movement tracking
+- per-spawn block-HP wall chewing with configurable cooldown and damage per hit
+- per-spawn true nerd-poling: mobs place a block at their feet and climb upward toward elevated players
+- per-spawn forward air-bridging: mobs place bridge blocks toward players across gaps
+```
+
+Still intentionally left as future wiring after the behavior shape is tested in-game:
+
+```text
+- full standalone naturalistic replacement spawning outside the normal entity-profile/wave system
+- full RPG damage timing
+- full super-skeleton projectile scheduler
+```

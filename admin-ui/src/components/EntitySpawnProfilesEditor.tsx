@@ -32,6 +32,8 @@ type EffectiveEntityWeight = EntityWeight & {
 type Props = {
   config: ApocalypseConfig;
   effectiveRows: EffectiveEntityWeight[];
+  registryEntities?: string[];
+  refreshRegistryEntities?: () => void;
   updateConfig: (updater: (draft: ApocalypseConfig) => void) => void;
 };
 
@@ -81,6 +83,35 @@ function defaultMobProperties(): MobProperties {
     breakBlocks: true,
     placeBlocks: true,
     bridgeGaps: true,
+    monsterAiWallAttack: false,
+    wallAttackUseBlockHp: true,
+    wallAttackCooldownTicks: 20,
+    wallAttackDamagePerHit: 1,
+    nerdPoleEnabled: false,
+    maxPillarHeight: 12,
+    pillarCooldownTicks: 40,
+    airBridgeEnabled: false,
+    maxBridgeLength: 24,
+    bridgeCooldownTicks: 40,
+    killAfterPillarOrBridge: false,
+    frustrationTicks: 100,
+    monsterAiBuildBlock: 'minecraft:cobblestone',
+    megaAggroEnabled: false,
+    daytimeMegaAggro: false,
+    sprintDistance: 18,
+    destroyTorches: false,
+    torchRadius: 5,
+    torchMinDay: 6,
+    naturalSpawnEnabled: false,
+    naturalSpawnMinLight: 0,
+    naturalSpawnMaxLight: 15,
+    naturalSpawnYMin: -64,
+    naturalSpawnYMax: 320,
+    naturalSpawnAllowWater: false,
+    naturalSpawnAllowAir: false,
+    naturalSpawnRequireBlockBelow: true,
+    naturalSpawnBlockMode: 'DISABLED',
+    naturalSpawnBlocks: [],
     explodingArrows: false,
     explodingArrowChance: 0,
     explodingArrowPower: 2,
@@ -141,7 +172,7 @@ function calculateEffectiveRows(rows: EntityWeight[], difficultyDay: number, bla
   });
 }
 
-export default function EntitySpawnProfilesEditor({ config, effectiveRows, updateConfig }: Props) {
+export default function EntitySpawnProfilesEditor({ config, effectiveRows, registryEntities = [], refreshRegistryEntities, updateConfig }: Props) {
   const profiles = config.entitySpawning.nightProfiles ?? [];
   const [selectedProfileId, setSelectedProfileId] = useState(() => profiles[0]?.id ?? '');
   const selectedProfile = useMemo(() => profiles.find((profile) => profile.id === selectedProfileId) ?? profiles[0], [profiles, selectedProfileId]);
@@ -218,6 +249,8 @@ export default function EntitySpawnProfilesEditor({ config, effectiveRows, updat
             rows={config.entitySpawning.legacyWeights}
             effectiveRows={effectiveRows}
             onChange={(rows) => updateConfig((draft) => { draft.entitySpawning.legacyWeights = rows; draft.entityWeights = rows; })}
+            registryEntities={registryEntities}
+            onRefreshRegistryEntities={refreshRegistryEntities}
           />
         </Stack>
       ) : (
@@ -252,6 +285,8 @@ export default function EntitySpawnProfilesEditor({ config, effectiveRows, updat
                 rows={selectedProfile.weights}
                 effectiveRows={calculateEffectiveRows(selectedProfile.weights, previewDay, config.entityBlacklist)}
                 onChange={(rows) => updateProfileWeights(selectedProfile.id, rows)}
+                registryEntities={registryEntities}
+                onRefreshRegistryEntities={refreshRegistryEntities}
                 selectionColumnLabel="Selection Chance"
               />
             </Stack>

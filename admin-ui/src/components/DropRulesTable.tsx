@@ -27,6 +27,7 @@ import {
 import { Fragment, useMemo, useState } from 'react';
 import type { ApocalypseConfig, DropProfile, DropRule, EconomyKillRewardTargetMode, EconomyParticipantRewardMode, RewardTargetMode } from '../types';
 import { VANILLA_DROP_ITEM_OPTIONS } from '../registryOptions';
+import { entityOptionLabel, entitySearchText, mergeEntityRegistryOptions, resolveEntityInput } from '../entityOptions';
 
 const ITEM_DISPLAY_TOOLTIP = 'Minecraft items display without the minecraft: prefix; modded IDs keep their namespace. The saved config still stores the full registry ID.';
 
@@ -137,7 +138,9 @@ const DROP_ENTITY_OPTIONS = [
 type Props = {
   config: ApocalypseConfig;
   registryItems: string[];
+  registryEntities: string[];
   refreshRegistryItems: () => void;
+  refreshRegistryEntities: () => void;
   updateConfig: (updater: (draft: ApocalypseConfig) => void) => void;
 };
 
@@ -224,12 +227,13 @@ function effectiveChance(profile: DropProfile, allProfiles: DropProfile[], day: 
   return total > 0 && isProfileActiveOnDay(profile, day) ? (Number(profile.weight || 0) / total) * 100 : 0;
 }
 
-export default function DropRulesTable({ config, registryItems, refreshRegistryItems, updateConfig }: Props) {
+export default function DropRulesTable({ config, registryItems, registryEntities, refreshRegistryItems, refreshRegistryEntities, updateConfig }: Props) {
   const profiles = config.drops.nightProfiles ?? [];
   const itemOptions = useMemo(() => {
     const merged = new Set<string>([...VANILLA_DROP_ITEM_OPTIONS, ...registryItems]);
     return [...merged].sort();
   }, [registryItems]);
+  const entityOptions = useMemo(() => mergeEntityRegistryOptions(registryEntities, true), [registryEntities]);
   const [selectedProfileId, setSelectedProfileId] = useState(() => profiles[0]?.id ?? '');
 
   const selectedProfile = useMemo(() => {
@@ -337,6 +341,7 @@ export default function DropRulesTable({ config, registryItems, refreshRegistryI
             </Select>
           </FormControl>
           <Button variant="outlined" onClick={refreshRegistryItems}>Load Item Registry</Button>
+          <Button variant="outlined" onClick={refreshRegistryEntities}>Load Entity Registry</Button>
           <Button startIcon={<AddIcon />} variant="contained" onClick={addProfile}>Add Profile</Button>
         </Stack>
       </Stack>
@@ -384,6 +389,7 @@ export default function DropRulesTable({ config, registryItems, refreshRegistryI
               <RulesTable
                 rows={selectedProfile.rules}
                 itemOptions={itemOptions}
+                entityOptions={entityOptions}
                 onAdd={() => addRuleToProfile(selectedProfile.id)}
                 onUpdate={(index, patch) => updateProfileRule(selectedProfile.id, index, patch)}
                 onRemove={(index) => removeRuleFromProfile(selectedProfile.id, index)}
@@ -401,6 +407,7 @@ export default function DropRulesTable({ config, registryItems, refreshRegistryI
           <RulesTable
             rows={config.drops.rules}
             itemOptions={itemOptions}
+            entityOptions={entityOptions}
             onAdd={() => updateConfig((draft) => { draft.drops.rules = [...draft.drops.rules, newRule()]; })}
             onUpdate={updateLegacyRule}
             onRemove={(index) => updateConfig((draft) => { draft.drops.rules = draft.drops.rules.filter((_, ruleIndex) => ruleIndex !== index); })}
@@ -411,7 +418,7 @@ export default function DropRulesTable({ config, registryItems, refreshRegistryI
   );
 }
 
-function RulesTable({ rows, itemOptions, onAdd, onUpdate, onRemove }: { rows: DropRule[]; itemOptions: string[]; onAdd: () => void; onUpdate: (index: number, patch: Partial<DropRule>) => void; onRemove: (index: number) => void }) {
+function RulesTable({ rows, itemOptions, entityOptions, onAdd, onUpdate, onRemove }: { rows: DropRule[]; itemOptions: string[]; entityOptions: string[]; onAdd: () => void; onUpdate: (index: number, patch: Partial<DropRule>) => void; onRemove: (index: number) => void }) {
   return (
     <Stack spacing={1}>
       <Stack direction="row" justifyContent="space-between" alignItems="center">
@@ -438,18 +445,25 @@ function RulesTable({ rows, itemOptions, onAdd, onUpdate, onRemove }: { rows: Dr
               <TableRow key={`drop-rule-${index}`}>
                 <TableCell><Checkbox checked={row.enabled} onChange={(event) => onUpdate(index, { enabled: event.target.checked })} /></TableCell>
                 <TableCell>
-                  <FormControl fullWidth size="small" sx={{ minWidth: 220 }}>
-                    <InputLabel>Entity</InputLabel>
-                    <Select
-                      label="Entity"
-                      value={row.entity || '*'}
-                      onChange={(event) => onUpdate(index, { entity: event.target.value })}
-                    >
-                      {DROP_ENTITY_OPTIONS.map((option) => (
-                        <MenuItem key={option.id} value={option.id}>{option.label}</MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
+                  <Autocomplete
+                    freeSolo
+                    disableClearable
+                    options={entityOptions}
+                    value={row.entity || '*'}
+                    getOptionLabel={(option) => entityOptionLabel(option)}
+                    isOptionEqualToValue={(option, value) => option === value}
+                    filterOptions={(options, state) => {
+                      const query = state.inputValue.trim().toLowerCase();
+                      if (!query) return options.slice(0, 200);
+                      return options.filter((option) => entitySearchText(option).includes(query)).slice(0, 200);
+                    }}
+                    onChange={(_, value) => onUpdate(index, { entity: resolveEntityInput(value, entityOptions) || '*' })}
+                    onInputChange={(_, value, reason) => {
+                      if (reason === 'input') onUpdate(index, { entity: resolveEntityInput(value, entityOptions) || '*' });
+                    }}
+                    renderInput={(params) => <TextField {...params} label="Entity" size="small" helperText="Use * for any entity" />}
+                    sx={{ minWidth: 260 }}
+                  />
                 </TableCell>
                 <TableCell>
                   <Autocomplete

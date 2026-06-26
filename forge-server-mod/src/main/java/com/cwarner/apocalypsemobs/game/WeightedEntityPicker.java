@@ -58,7 +58,7 @@ public final class WeightedEntityPicker {
             Optional<EntityType<?>> optionalType = BuiltInRegistries.ENTITY_TYPE.getOptional(new ResourceLocation(entry.entity));
             if (optionalType.isEmpty()) continue;
             EntityType<?> type = optionalType.get();
-            if (type.getCategory() != MobCategory.MONSTER) continue;
+            if (!isAllowedCategory(type, entry)) continue;
             double spawnChance = Math.max(0.0D, Math.min(1.0D, entry.spawnChance));
             if (spawnChance <= 0.0D) continue;
             active.add(new WeightedType(type, entry, entry.weight, spawnChance));
@@ -80,6 +80,14 @@ public final class WeightedEntityPicker {
         }
 
         return null;
+    }
+
+
+    private static boolean isAllowedCategory(EntityType<?> type, EntityWeight entry) {
+        MobCategory category = type.getCategory();
+        if (category == MobCategory.MISC) return false;
+        if (category == MobCategory.MONSTER) return true;
+        return entry.properties != null && entry.properties.naturalSpawnEnabled;
     }
 
     private static WeightedType pickWeightedType(List<WeightedType> active, int totalWeight, RandomSource random) {

@@ -43,7 +43,7 @@ public final class WaveDirector {
     }
 
     private void processLevel(ServerLevel level, ApocalypseConfig config) {
-        boolean night = !config.waves.onlyAtNight || isNight(level);
+        boolean night = !config.waves.onlyAtNight || isNight(level, config);
         String key = level.dimension().location().toString();
         NightState state = nightStates.computeIfAbsent(key, ignored -> new NightState());
 
@@ -99,7 +99,7 @@ public final class WaveDirector {
                 WeightedEntityPicker.PickResult picked = WeightedEntityPicker.pickDetailed(config, difficultyDay, level, level.random);
                 if (picked == null || picked.type() == null) continue;
                 EntityType<?> type = picked.type();
-                BlockPos pos = SpawnLocator.findSpawnPos(level, player, type, config, profile);
+                BlockPos pos = SpawnLocator.findSpawnPos(level, player, type, config, profile, picked.rule());
                 if (pos == null) continue;
                 Entity entity = type.create(level);
                 if (entity == null) continue;
@@ -152,25 +152,53 @@ public final class WaveDirector {
     }
 
     private int rollWaveCount(ServerLevel level, ApocalypseConfig config, WaveProfile profile) {
+        int rolled;
         if (profile != null) {
-            return randomBetween(level, profile.minWaves, Math.max(profile.minWaves, profile.maxWaves));
+            rolled = randomBetween(level, profile.minWaves, Math.max(profile.minWaves, profile.maxWaves));
+        } else {
+            int min = DifficultyCalculator.lerpInt(config.waves.minWavesDay1, config.waves.minWavesDay30, level);
+            int max = DifficultyCalculator.lerpInt(config.waves.maxWavesDay1, config.waves.maxWavesDay30, level);
+            rolled = randomBetween(level, min, Math.max(min, max));
         }
-        int min = DifficultyCalculator.lerpInt(config.waves.minWavesDay1, config.waves.minWavesDay30, level);
-        int max = DifficultyCalculator.lerpInt(config.waves.maxWavesDay1, config.waves.maxWavesDay30, level);
-        return randomBetween(level, min, Math.max(min, max));
+        return applyNightmareScaling(rolled, config, level);
     }
 
     private int rollMobCount(ServerLevel level, ApocalypseConfig config, WaveProfile profile) {
+        int rolled;
         if (profile != null) {
-            return randomBetween(level, profile.minMobs, Math.max(profile.minMobs, profile.maxMobs));
+            rolled = randomBetween(level, profile.minMobs, Math.max(profile.minMobs, profile.maxMobs));
+        } else {
+            int min = DifficultyCalculator.lerpInt(config.waves.minMobsDay1, config.waves.minMobsDay30, level);
+            int max = DifficultyCalculator.lerpInt(config.waves.maxMobsDay1, config.waves.maxMobsDay30, level);
+            rolled = randomBetween(level, min, Math.max(min, max));
         }
-        int min = DifficultyCalculator.lerpInt(config.waves.minMobsDay1, config.waves.minMobsDay30, level);
-        int max = DifficultyCalculator.lerpInt(config.waves.maxMobsDay1, config.waves.maxMobsDay30, level);
-        return randomBetween(level, min, Math.max(min, max));
+        return applyNightmareScaling(rolled, config, level);
     }
 
-    private boolean isNight(ServerLevel level) {
+    private int applyNightmareScaling(int baseValue, ApocalypseConfig config, ServerLevel level) {
+        if (config.monsterApocalypse == null || !config.monsterApocalypse.enabled) return baseValue;
+        var nightmare = config.monsterApocalypse.nightmare;
+        if (nightmare == null || nightmare.multiplier <= 0.0D || nightmare.multiplier == 1.0D) return baseValue;
+        double multiplier = nightmare.multiplier;
+        if (nightmare.exponential) {
+            int day = DifficultyCalculator.getDifficultyDay(level);
+            multiplier = Math.pow(multiplier, Math.max(0, day - 1) / 10.0D);
+        }
+        return Math.max(0, (int) Math.round(baseValue * multiplier));
+    }
+
+    private boolean isNight(ServerLevel level, ApocalypseConfig config) {
         if (level.dimension() != Level.OVERWORLD) return true;
+        if (config.monsterApocalypse != null && config.monsterApocalypse.enabled
+                && config.monsterApocalypse.nightmare != null
+                && config.monsterApocalypse.nightmare.alwaysNight) {
+            long dayBase = (level.getDayTime() / 24000L) * 24000L;
+            long timeOfDay = level.getDayTime() % 24000L;
+            if (timeOfDay < 13000L || timeOfDay > 23000L) {
+                level.setDayTime(dayBase + 18000L);
+            }
+            return true;
+        }
         long dayTime = level.getDayTime() % 24000L;
         return dayTime >= 13000L && dayTime <= 23000L;
     }

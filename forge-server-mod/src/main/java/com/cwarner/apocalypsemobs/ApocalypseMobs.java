@@ -5,7 +5,9 @@ import com.cwarner.apocalypsemobs.config.ConfigManager;
 import com.cwarner.apocalypsemobs.game.BlockPlacementLedger;
 import com.cwarner.apocalypsemobs.game.MobBehaviorController;
 import com.cwarner.apocalypsemobs.game.MobDropHandler;
+import com.cwarner.apocalypsemobs.game.MonsterAiController;
 import com.cwarner.apocalypsemobs.game.SpecialMobGoalController;
+import com.cwarner.apocalypsemobs.game.SpawnPointController;
 import com.cwarner.apocalypsemobs.game.WaveDirector;
 import com.mojang.logging.LogUtils;
 import net.minecraftforge.common.MinecraftForge;
@@ -28,8 +30,10 @@ public final class ApocalypseMobs {
         MinecraftForge.EVENT_BUS.register(this);
         MinecraftForge.EVENT_BUS.register(new WaveDirector());
         MinecraftForge.EVENT_BUS.register(new MobBehaviorController());
+        MinecraftForge.EVENT_BUS.register(new MonsterAiController());
         MinecraftForge.EVENT_BUS.register(new MobDropHandler());
         MinecraftForge.EVENT_BUS.register(new SpecialMobGoalController());
+        MinecraftForge.EVENT_BUS.register(new SpawnPointController());
         LOGGER.info("Apocalypse Mobs initialized.");
     }
 

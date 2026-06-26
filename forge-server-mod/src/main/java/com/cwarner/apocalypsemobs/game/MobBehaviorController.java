@@ -43,15 +43,27 @@ public final class MobBehaviorController {
         monster.setTarget(target);
         monster.getNavigation().moveTo(target, speed);
 
-        if (config.behavior.breakBlocks && allowsBehavior(monster, MobPropertyApplier.BREAK_BLOCKS_TAG) && day >= config.behavior.breakBlocksMinDay) {
+        if (config.behavior.breakBlocks && !advancedWallAttack(monster) && allowsBehavior(monster, MobPropertyApplier.BREAK_BLOCKS_TAG) && day >= config.behavior.breakBlocksMinDay) {
             tryBreakBlockingBlock(level, monster, target, config);
         }
-        if (config.behavior.placeBlocks && allowsBehavior(monster, MobPropertyApplier.PLACE_BLOCKS_TAG) && day >= config.behavior.placeBlocksMinDay) {
+        if (config.behavior.placeBlocks && !advancedPillar(monster) && allowsBehavior(monster, MobPropertyApplier.PLACE_BLOCKS_TAG) && day >= config.behavior.placeBlocksMinDay) {
             tryPlaceStepBlock(level, monster, target, config, day);
         }
-        if (config.behavior.bridgeGaps && allowsBehavior(monster, MobPropertyApplier.BRIDGE_GAPS_TAG) && day >= config.behavior.bridgeMinDay) {
+        if (config.behavior.bridgeGaps && !advancedBridge(monster) && allowsBehavior(monster, MobPropertyApplier.BRIDGE_GAPS_TAG) && day >= config.behavior.bridgeMinDay) {
             tryBridgeGap(level, monster, target, config, day);
         }
+    }
+
+    private boolean advancedWallAttack(Monster monster) {
+        return monster.getPersistentData().getBoolean(MobPropertyApplier.MONSTER_AI_WALL_ATTACK_TAG);
+    }
+
+    private boolean advancedPillar(Monster monster) {
+        return monster.getPersistentData().getBoolean(MobPropertyApplier.NERD_POLE_ENABLED_TAG);
+    }
+
+    private boolean advancedBridge(Monster monster) {
+        return monster.getPersistentData().getBoolean(MobPropertyApplier.AIR_BRIDGE_ENABLED_TAG);
     }
 
     private boolean allowsBehavior(Monster monster, String tag) {
@@ -65,6 +77,29 @@ public final class MobBehaviorController {
                 .filter(player -> player.distanceToSqr(source.getX(), source.getY(), source.getZ()) <= rangeSqr)
                 .min(Comparator.comparingDouble(player -> player.distanceToSqr(source.getX(), source.getY(), source.getZ())))
                 .orElse(null);
+    }
+
+    private void tryDestroyNearbyTorch(ServerLevel level, Monster monster, ApocalypseConfig config) {
+        int radius = config.monsterApocalypse.monsterBehavior.torchRadius;
+        BlockPos origin = monster.blockPosition();
+        for (BlockPos pos : BlockPos.betweenClosed(origin.offset(-radius, -2, -radius), origin.offset(radius, 2, radius))) {
+            BlockPos immutable = pos.immutable();
+            if (!level.isLoaded(immutable) || isProtectedPosition(level, immutable, config)) continue;
+            BlockState state = level.getBlockState(immutable);
+            if (!isTorchLike(state)) continue;
+            level.destroyBlock(immutable, false);
+            return;
+        }
+    }
+
+    private boolean isTorchLike(BlockState state) {
+        Block block = state.getBlock();
+        return block == Blocks.TORCH
+                || block == Blocks.WALL_TORCH
+                || block == Blocks.SOUL_TORCH
+                || block == Blocks.SOUL_WALL_TORCH
+                || block == Blocks.REDSTONE_TORCH
+                || block == Blocks.REDSTONE_WALL_TORCH;
     }
 
     private void tryBreakBlockingBlock(ServerLevel level, Monster monster, ServerPlayer target, ApocalypseConfig config) {
