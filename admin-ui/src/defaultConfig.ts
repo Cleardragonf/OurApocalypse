@@ -50,6 +50,7 @@ function mobProperties(patch: Partial<MobProperties> = {}): MobProperties {
     stepHeightMax: 0,
     persistent: false,
     customName: "",
+    effects: [],
     targetPlayers: true,
     breakBlocks: true,
     placeBlocks: true,

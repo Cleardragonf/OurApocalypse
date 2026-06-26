@@ -4,6 +4,7 @@ import com.cwarner.apocalypsemobs.config.EntityWeight;
 import com.cwarner.apocalypsemobs.config.MobProperties;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
@@ -13,9 +14,14 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.monster.Creeper;
 import net.minecraft.world.entity.monster.EnderMan;
 import net.minecraft.world.entity.monster.Spider;
+import net.minecraft.world.effect.MobEffect;
+import net.minecraft.world.effect.MobEffectInstance;
+
+import java.util.Optional;
 
 /** Applies profile-specific server-side vanilla attribute modifiers to spawned apocalypse mobs. */
 public final class MobPropertyApplier {
+    public static final String APOCALYPSE_PROFILE_TAG = "ApocalypseMobsProfiled";
     public static final String TARGET_PLAYERS_TAG = "ApocalypseMobsTargetPlayers";
     public static final String BREAK_BLOCKS_TAG = "ApocalypseMobsBreakBlocks";
     public static final String PLACE_BLOCKS_TAG = "ApocalypseMobsPlaceBlocks";
@@ -35,12 +41,20 @@ public final class MobPropertyApplier {
     public static final String SPIDER_WEB_PLAYERS_TAG = "ApocalypseMobsSpiderWebPlayers";
     public static final String SPIDER_WEB_CHANCE_TAG = "ApocalypseMobsSpiderWebChance";
     public static final String SPIDER_WEB_COOLDOWN_TAG = "ApocalypseMobsSpiderWebCooldown";
+    public static final String ECONOMY_REWARD_ENABLED_TAG = "ApocalypseMobsEconomyRewardEnabled";
+    public static final String ECONOMY_REWARD_CHANCE_TAG = "ApocalypseMobsEconomyRewardChance";
+    public static final String ECONOMY_REWARD_MIN_AMOUNT_TAG = "ApocalypseMobsEconomyRewardMinAmount";
+    public static final String ECONOMY_REWARD_MAX_AMOUNT_TAG = "ApocalypseMobsEconomyRewardMaxAmount";
+    public static final String ECONOMY_REWARD_TARGET_MODE_TAG = "ApocalypseMobsEconomyRewardTargetMode";
+    public static final String ECONOMY_REWARD_PARTICIPANT_MODE_TAG = "ApocalypseMobsEconomyRewardParticipantMode";
+    public static final String ECONOMY_REWARD_REASON_TAG = "ApocalypseMobsEconomyRewardReason";
 
     private MobPropertyApplier() {}
 
     public static void apply(Entity entity, EntityWeight rule) {
         if (!(entity instanceof LivingEntity living) || rule == null || rule.properties == null) return;
         MobProperties properties = rule.properties;
+        entity.getPersistentData().putBoolean(APOCALYPSE_PROFILE_TAG, true);
         entity.getPersistentData().putBoolean(TARGET_PLAYERS_TAG, properties.targetPlayers);
         entity.getPersistentData().putBoolean(BREAK_BLOCKS_TAG, properties.breakBlocks);
         entity.getPersistentData().putBoolean(PLACE_BLOCKS_TAG, properties.placeBlocks);
@@ -60,6 +74,13 @@ public final class MobPropertyApplier {
         entity.getPersistentData().putBoolean(SPIDER_WEB_PLAYERS_TAG, properties.spiderWebPlayers && supportsSpiderWebPlayers(entity));
         entity.getPersistentData().putDouble(SPIDER_WEB_CHANCE_TAG, properties.spiderWebChance);
         entity.getPersistentData().putInt(SPIDER_WEB_COOLDOWN_TAG, properties.spiderWebCooldownTicks);
+        entity.getPersistentData().putBoolean(ECONOMY_REWARD_ENABLED_TAG, rule.economyRewardEnabled);
+        entity.getPersistentData().putDouble(ECONOMY_REWARD_CHANCE_TAG, rule.economyRewardChance);
+        entity.getPersistentData().putDouble(ECONOMY_REWARD_MIN_AMOUNT_TAG, rule.economyRewardMinAmount);
+        entity.getPersistentData().putDouble(ECONOMY_REWARD_MAX_AMOUNT_TAG, rule.economyRewardMaxAmount);
+        entity.getPersistentData().putString(ECONOMY_REWARD_TARGET_MODE_TAG, rule.economyRewardTargetMode);
+        entity.getPersistentData().putString(ECONOMY_REWARD_PARTICIPANT_MODE_TAG, rule.economyRewardParticipantMode);
+        entity.getPersistentData().putString(ECONOMY_REWARD_REASON_TAG, rule.economyRewardReason);
 
         if (!properties.enabled) return;
 
@@ -100,6 +121,18 @@ public final class MobPropertyApplier {
             living.setCustomName(Component.literal(properties.customName));
             living.setCustomNameVisible(false);
         }
+
+        applyEffects(living, properties, random);
+    }
+
+    private static void applyEffects(LivingEntity living, MobProperties properties, RandomSource random) {
+        if (properties.effects == null || properties.effects.isEmpty()) return;
+        for (var rule : properties.effects) {
+            if (rule == null || !rule.enabled || rule.chance <= 0.0D || random.nextDouble() > rule.chance) continue;
+            Optional<MobEffect> effect = BuiltInRegistries.MOB_EFFECT.getOptional(new ResourceLocation(rule.effect));
+            if (effect.isEmpty()) continue;
+            living.addEffect(new MobEffectInstance(effect.get(), Math.max(1, rule.durationTicks), Math.max(0, rule.amplifier), rule.ambient, rule.showParticles));
+        }
     }
 
 
@@ -129,6 +162,11 @@ public final class MobPropertyApplier {
     public static boolean supportsSpiderWebPlayers(Entity entity) {
         String id = entityId(entity);
         return entity instanceof Spider || id.equals("minecraft:spider") || id.equals("minecraft:cave_spider") || id.endsWith(":spider") || id.contains("spider");
+    }
+
+    public static boolean isProfiled(Entity entity) {
+        return entity.getPersistentData().getBoolean(APOCALYPSE_PROFILE_TAG)
+                || entity.getPersistentData().contains(TARGET_PLAYERS_TAG);
     }
 
     private static String entityId(Entity entity) {

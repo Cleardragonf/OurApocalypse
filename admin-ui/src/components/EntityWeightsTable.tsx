@@ -24,6 +24,18 @@ import {
 } from '@mui/material';
 import type { EntityWeight, MobProperties, PropertyValueMode } from '../types';
 
+const EFFECT_OPTIONS = [
+  'minecraft:speed',
+  'minecraft:strength',
+  'minecraft:resistance',
+  'minecraft:fire_resistance',
+  'minecraft:regeneration',
+  'minecraft:invisibility',
+  'minecraft:jump_boost',
+  'minecraft:slow_falling',
+  'minecraft:absorption',
+  'minecraft:glowing'
+];
 
 const HOSTILE_ENTITY_OPTIONS = [
   { id: 'minecraft:blaze', label: 'Blaze' },
@@ -241,6 +253,7 @@ function defaultMobProperties(): MobProperties {
     stepHeightMax: 0,
     persistent: false,
     customName: '',
+    effects: [],
     targetPlayers: true,
     breakBlocks: true,
     placeBlocks: true,
@@ -401,6 +414,26 @@ export default function EntityWeightsTable({ rows, effectiveRows, onChange, sele
   const updateProperties = (index: number, patch: Partial<MobProperties>) => {
     const current = mobProperties(rows[index]);
     update(index, { properties: { ...current, ...patch } });
+  };
+
+  const updateEffect = (index: number, effectIndex: number, patch: Partial<MobProperties['effects'][number]>) => {
+    const current = mobProperties(rows[index]);
+    const effects = [...(current.effects ?? [])];
+    effects[effectIndex] = { ...effects[effectIndex], ...patch };
+    updateProperties(index, { effects, enabled: true });
+  };
+
+  const addEffect = (index: number) => {
+    const current = mobProperties(rows[index]);
+    updateProperties(index, {
+      effects: [...(current.effects ?? []), { enabled: true, effect: 'minecraft:speed', durationTicks: 600, amplifier: 0, chance: 1, ambient: false, showParticles: true }],
+      enabled: true
+    });
+  };
+
+  const removeEffect = (index: number, effectIndex: number) => {
+    const current = mobProperties(rows[index]);
+    updateProperties(index, { effects: (current.effects ?? []).filter((_, rowIndex) => rowIndex !== effectIndex) });
   };
 
   const addRow = () => onChange([
@@ -586,6 +619,63 @@ export default function EntityWeightsTable({ rows, effectiveRows, onChange, sele
                                   label="Bridge gaps"
                                 />
                               </Stack>
+                            </Grid>
+
+                            <Grid item xs={12}>
+                              <Box sx={{ mt: 1, p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 1 }}>
+                                <Stack spacing={2}>
+                                  <Stack direction="row" alignItems="center" justifyContent="space-between" spacing={2}>
+                                    <div>
+                                      <Typography variant="subtitle2">Spawn effects</Typography>
+                                      <Typography variant="body2" color="text.secondary">
+                                        MonsterApocalypse-style potion effects rolled when this profile spawns a mob.
+                                      </Typography>
+                                    </div>
+                                    <Button size="small" startIcon={<AddIcon />} onClick={() => addEffect(index)}>Add Effect</Button>
+                                  </Stack>
+                                  {(props.effects ?? []).length === 0 ? (
+                                    <Typography variant="body2" color="text.secondary">No spawn effects configured.</Typography>
+                                  ) : (
+                                    <Grid container spacing={1.5}>
+                                      {(props.effects ?? []).map((effect, effectIndex) => (
+                                        <Fragment key={`${effect.effect}-${effectIndex}`}>
+                                          <Grid item xs={12} md={2}>
+                                            <FormControlLabel
+                                              control={<Checkbox checked={effect.enabled} onChange={(event) => updateEffect(index, effectIndex, { enabled: event.target.checked })} />}
+                                              label="Enabled"
+                                            />
+                                          </Grid>
+                                          <Grid item xs={12} md={3}>
+                                            <TextField
+                                              select
+                                              fullWidth
+                                              label="Effect"
+                                              value={effect.effect}
+                                              onChange={(event) => updateEffect(index, effectIndex, { effect: event.target.value })}
+                                            >
+                                              {EFFECT_OPTIONS.map((option) => <MenuItem key={option} value={option}>{option}</MenuItem>)}
+                                            </TextField>
+                                          </Grid>
+                                          <Grid item xs={6} md={2}>
+                                            <TextField fullWidth type="number" label="Duration ticks" value={effect.durationTicks} inputProps={{ min: 1, step: 20 }} onChange={(event) => updateEffect(index, effectIndex, { durationTicks: numberValue(event.target.value, effect.durationTicks) })} />
+                                          </Grid>
+                                          <Grid item xs={6} md={1.5}>
+                                            <TextField fullWidth type="number" label="Amplifier" value={effect.amplifier} inputProps={{ min: 0, max: 255, step: 1 }} onChange={(event) => updateEffect(index, effectIndex, { amplifier: numberValue(event.target.value, effect.amplifier) })} />
+                                          </Grid>
+                                          <Grid item xs={6} md={1.5}>
+                                            <TextField fullWidth type="number" label="Chance %" value={Math.round((effect.chance ?? 0) * 10000) / 100} inputProps={{ min: 0, max: 100, step: 1 }} onChange={(event) => updateEffect(index, effectIndex, { chance: clampPercent(numberValue(event.target.value, (effect.chance ?? 0) * 100)) / 100 })} />
+                                          </Grid>
+                                          <Grid item xs={6} md={1}>
+                                            <IconButton color="error" onClick={() => removeEffect(index, effectIndex)}>
+                                              <DeleteIcon />
+                                            </IconButton>
+                                          </Grid>
+                                        </Fragment>
+                                      ))}
+                                    </Grid>
+                                  )}
+                                </Stack>
+                              </Box>
                             </Grid>
 
                             <Grid item xs={12}>

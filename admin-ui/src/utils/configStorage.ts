@@ -112,6 +112,7 @@ export function defaultMobProperties(): MobProperties {
     stepHeightMax: 0,
     persistent: false,
     customName: "",
+    effects: [],
     targetPlayers: true,
     breakBlocks: true,
     placeBlocks: true,

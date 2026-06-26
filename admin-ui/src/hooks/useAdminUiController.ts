@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type {
   ApocalypseConfig,
   EntityWeight,
+  EconomyWalletResponse,
   ModStatus,
   PlacedBlocksResponse,
   RollbackSummary,
@@ -145,6 +146,30 @@ export function useAdminUiController() {
     } catch {
       return [];
     }
+  };
+
+  const fetchEconomyBalance = async (player: string): Promise<EconomyWalletResponse> => {
+    const res = await fetch(`${apiBase(connectionSettings)}/api/economy/balance?player=${encodeURIComponent(player)}`, { headers: apiHeaders(connectionSettings) });
+    if (!res.ok) throw new Error(await readApiMessage(res, "Unable to fetch balance."));
+    const body = (await res.json()) as EconomyWalletResponse;
+    setNotice(`${body.player} balance: ${body.balance.toFixed(2)} ${body.currencyName}.`);
+    setOnline(true);
+    setError(null);
+    return body;
+  };
+
+  const applyEconomyOperation = async (operation: "add" | "remove" | "set", player: string, value: number): Promise<EconomyWalletResponse> => {
+    const res = await fetch(`${apiBase(connectionSettings)}/api/economy/${operation}`, {
+      method: "POST",
+      headers: apiHeaders(connectionSettings),
+      body: JSON.stringify({ player, value }),
+    });
+    if (!res.ok) throw new Error(await readApiMessage(res, "Unable to run economy command."));
+    const body = (await res.json()) as EconomyWalletResponse;
+    setNotice(`${operation.toUpperCase()} complete. ${body.player} balance: ${body.balance.toFixed(2)} ${body.currencyName}.`);
+    setOnline(true);
+    setError(null);
+    return body;
   };
 
   const fetchStatus = async (quiet = false) => {
@@ -328,6 +353,8 @@ export function useAdminUiController() {
     fetchRegistryEntities,
     fetchRegistryCommands,
     fetchCommandSuggestions,
+    fetchEconomyBalance,
+    applyEconomyOperation,
     fetchStatus,
     fetchPlacedBlocks,
     rollbackPlacedBlocks,
@@ -340,3 +367,12 @@ export function useAdminUiController() {
 }
 
 export type AdminUiController = ReturnType<typeof useAdminUiController>;
+
+async function readApiMessage(response: Response, fallback: string): Promise<string> {
+  try {
+    const body = (await response.json()) as { message?: string };
+    return body.message || fallback;
+  } catch {
+    return fallback;
+  }
+}

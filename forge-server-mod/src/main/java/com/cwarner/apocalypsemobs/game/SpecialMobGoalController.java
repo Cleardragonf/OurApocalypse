@@ -70,6 +70,7 @@ public final class SpecialMobGoalController {
         ApocalypseConfig config = ConfigManager.get();
         if (!config.enabled || !config.behavior.enabled) return;
         if (monster.tickCount % Math.max(10, config.behavior.mobTickInterval) != 0) return;
+        if (!MobPropertyApplier.isProfiled(monster)) return;
         if (!allowsBehavior(monster, MobPropertyApplier.TARGET_PLAYERS_TAG)) return;
 
         if (monster instanceof Creeper creeper) {
@@ -120,8 +121,11 @@ public final class SpecialMobGoalController {
 
         BlockPos pos = safe.get();
         data.putLong(LAST_ENDERMAN_TELEPORT_TICK, level.getGameTime());
+        teleportEntity(enderman, target.blockPosition());
         target.teleportTo(pos.getX() + 0.5D, pos.getY(), pos.getZ() + 0.5D);
         target.fallDistance = 0.0F;
+        teleportEntity(enderman, pos);
+        enderman.fallDistance = 0.0F;
     }
 
     private void trySpiderWeb(ServerLevel level, Spider spider, ApocalypseConfig config) {
@@ -129,7 +133,7 @@ public final class SpecialMobGoalController {
         if (!data.getBoolean(MobPropertyApplier.SPIDER_WEB_PLAYERS_TAG)) return;
         if (!cooldownReady(level, data, LAST_SPIDER_WEB_TICK, data.getInt(MobPropertyApplier.SPIDER_WEB_COOLDOWN_TAG))) return;
 
-        ServerPlayer target = targetFor(level, spider, 9.0D);
+        ServerPlayer target = activePlayerTarget(spider);
         if (target == null) return;
 
         double chance = getDouble(data, MobPropertyApplier.SPIDER_WEB_CHANCE_TAG, 0.0D);
@@ -163,6 +167,13 @@ public final class SpecialMobGoalController {
                 .filter(player -> player.distanceToSqr(source.getX(), source.getY(), source.getZ()) <= rangeSqr)
                 .min(Comparator.comparingDouble(player -> player.distanceToSqr(source.getX(), source.getY(), source.getZ())))
                 .orElse(null);
+    }
+
+    private ServerPlayer activePlayerTarget(Monster monster) {
+        if (monster.getTarget() instanceof ServerPlayer player && player.isAlive() && !player.isCreative() && !player.isSpectator()) {
+            return player;
+        }
+        return null;
     }
 
     private BlockPos blockingWallPosition(ServerLevel level, BlockPos source, BlockPos target, ApocalypseConfig config) {
@@ -219,7 +230,11 @@ public final class SpecialMobGoalController {
     }
 
     private boolean allowsBehavior(Monster monster, String tag) {
-        return !monster.getPersistentData().contains(tag) || monster.getPersistentData().getBoolean(tag);
+        return monster.getPersistentData().contains(tag) && monster.getPersistentData().getBoolean(tag);
+    }
+
+    private void teleportEntity(Entity entity, BlockPos pos) {
+        entity.teleportTo(pos.getX() + 0.5D, pos.getY(), pos.getZ() + 0.5D);
     }
 
     private Direction horizontalDirectionToward(BlockPos source, BlockPos target) {

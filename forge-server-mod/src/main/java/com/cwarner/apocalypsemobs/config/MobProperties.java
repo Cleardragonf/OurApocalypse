@@ -1,5 +1,8 @@
 package com.cwarner.apocalypsemobs.config;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Optional per-entity property overrides applied immediately after an apocalypse mob spawns.
  * These are intentionally server-side vanilla attribute changes, so clients do not need this mod.
@@ -58,6 +61,7 @@ public class MobProperties {
 
     public boolean persistent = false;
     public String customName = "";
+    public List<MobEffectRule> effects = new ArrayList<>();
     public boolean targetPlayers = true;
     public boolean breakBlocks = true;
     public boolean placeBlocks = true;
@@ -225,6 +229,8 @@ public class MobProperties {
         endermanTeleportCooldownTicks = Math.max(20, endermanTeleportCooldownTicks);
         spiderWebChance = clampFinite(spiderWebChance, 0.0D, 1.0D, 0.0D);
         spiderWebCooldownTicks = Math.max(20, spiderWebCooldownTicks);
+        if (effects == null) effects = new ArrayList<>();
+        for (MobEffectRule effect : effects) if (effect != null) effect.sanitize();
         if (customName == null) customName = "";
         customName = customName.trim();
     }

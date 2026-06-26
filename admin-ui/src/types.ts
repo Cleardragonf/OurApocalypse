@@ -2,6 +2,16 @@ export type DifficultyMode = "REAL_MONTH_DAY" | "WORLD_DAY_CYCLE" | "MANUAL";
 export type ProfileMode = "NIGHT_PROFILES" | "LEGACY_RULES";
 export type PropertyValueMode = "FIXED" | "RANGED";
 
+export type MobEffectRule = {
+  enabled: boolean;
+  effect: string;
+  durationTicks: number;
+  amplifier: number;
+  chance: number;
+  ambient: boolean;
+  showParticles: boolean;
+};
+
 export type MobProperties = {
   enabled: boolean;
   maxHealthMode: PropertyValueMode;
@@ -38,6 +48,7 @@ export type MobProperties = {
   stepHeightMax: number;
   persistent: boolean;
   customName: string;
+  effects: MobEffectRule[];
   targetPlayers: boolean;
   breakBlocks: boolean;
   placeBlocks: boolean;
@@ -296,6 +307,15 @@ export type EconomyConfig = {
     allowOutOfStockPurchases: boolean;
     listings: EconomyMarketListing[];
   };
+};
+
+export type EconomyWalletResponse = {
+  ok: boolean;
+  player: string;
+  uuid: string;
+  balance: number;
+  currencyName: string;
+  updatedAt: string;
 };
 
 export type ClearLagConfig = {

@@ -3,10 +3,12 @@ import { useMemo, useState } from "react";
 import type { ApocalypseConfig } from "../types";
 import { VANILLA_DROP_ITEM_OPTIONS } from "../registryOptions";
 import EconomyConfigTab from "./economy/EconomyConfigTab";
+import EconomyCommandsTab from "./economy/EconomyCommandsTab";
 import EconomyMarketTab from "./economy/EconomyMarketTab";
 import { entityLabel, SPECIAL_ENTITY_OPTIONS, VANILLA_ENTITY_OPTIONS } from "./economy/economyUtils";
+import type { EconomyWalletResponse } from "../types";
 
-type EconomyTabKey = "config" | "market";
+type EconomyTabKey = "config" | "market" | "commands";
 
 type Props = {
   config: ApocalypseConfig;
@@ -14,10 +16,13 @@ type Props = {
   registryEntities: string[];
   refreshRegistryItems: () => void;
   refreshRegistryEntities: () => void;
+  fetchEconomyBalance: (player: string) => Promise<EconomyWalletResponse>;
+  applyEconomyOperation: (operation: "add" | "remove" | "set", player: string, value: number) => Promise<EconomyWalletResponse>;
+  setError: (message: string | null) => void;
   updateConfig: (updater: (draft: ApocalypseConfig) => void) => void;
 };
 
-export default function EconomyEditor({ config, registryItems, registryEntities, refreshRegistryItems, refreshRegistryEntities, updateConfig }: Props) {
+export default function EconomyEditor({ config, registryItems, registryEntities, refreshRegistryItems, refreshRegistryEntities, fetchEconomyBalance, applyEconomyOperation, setError, updateConfig }: Props) {
   const [economyTab, setEconomyTab] = useState<EconomyTabKey>("config");
   const itemOptions = useMemo(() => [...new Set([...VANILLA_DROP_ITEM_OPTIONS, ...registryItems])].sort(), [registryItems]);
   const entityOptions = useMemo(() => {
@@ -41,9 +46,10 @@ export default function EconomyEditor({ config, registryItems, registryEntities,
           {economyTab === "config" && <Button variant="outlined" onClick={refreshRegistryEntities}>Refresh entity registry</Button>}
         </Stack>
       </Stack>
-      <Tabs value={economyTab} onChange={(_, value) => setEconomyTab(value)} variant="scrollable" scrollButtons="auto"><Tab value="config" label="Config" /><Tab value="market" label="Market" /></Tabs>
+      <Tabs value={economyTab} onChange={(_, value) => setEconomyTab(value)} variant="scrollable" scrollButtons="auto"><Tab value="config" label="Config" /><Tab value="market" label="Market" /><Tab value="commands" label="Commands" /></Tabs>
       {economyTab === "config" && <EconomyConfigTab config={config} entityOptions={entityOptions} updateConfig={updateConfig} />}
       {economyTab === "market" && <EconomyMarketTab config={config} itemOptions={itemOptions} updateConfig={updateConfig} />}
+      {economyTab === "commands" && <EconomyCommandsTab fetchBalance={fetchEconomyBalance} applyOperation={applyEconomyOperation} setError={setError} />}
     </Stack>
   );
 }

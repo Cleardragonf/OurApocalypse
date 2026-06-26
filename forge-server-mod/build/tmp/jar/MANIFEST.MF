@@ -3,7 +3,7 @@ Specification-Title: apocalypse_mobs
 Specification-Vendor: Christopher Warner
 Specification-Version: 1
 Implementation-Title: apocalypse-mobs
-Implementation-Version: 1.7.0
+Implementation-Version: 1.8.0
 Implementation-Vendor: Christopher Warner
-Implementation-Timestamp: 2026-06-24T21:48:38-0500
+Implementation-Timestamp: 2026-06-25T20:17:52-0500
 

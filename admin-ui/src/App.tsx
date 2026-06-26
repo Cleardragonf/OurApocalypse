@@ -29,7 +29,7 @@ export default function App() {
             <Card><CardContent><ScheduledEventsEditor config={controller.config} commandRegistry={controller.registryCommands} refreshCommandRegistry={() => controller.fetchRegistryCommands(false)} fetchCommandSuggestions={controller.fetchCommandSuggestions} updateConfig={controller.updateConfig} /></CardContent></Card>
           )}
           {mainPage === "economy" && (
-            <Card><CardContent><EconomyEditor config={controller.config} registryItems={controller.registryItems} registryEntities={controller.registryEntities} refreshRegistryItems={() => controller.fetchRegistryItems(false)} refreshRegistryEntities={() => controller.fetchRegistryEntities(false)} updateConfig={controller.updateConfig} /></CardContent></Card>
+            <Card><CardContent><EconomyEditor config={controller.config} registryItems={controller.registryItems} registryEntities={controller.registryEntities} refreshRegistryItems={() => controller.fetchRegistryItems(false)} refreshRegistryEntities={() => controller.fetchRegistryEntities(false)} fetchEconomyBalance={controller.fetchEconomyBalance} applyEconomyOperation={controller.applyEconomyOperation} setError={controller.setError} updateConfig={controller.updateConfig} /></CardContent></Card>
           )}
           {mainPage === "clear-lag" && <ClearLagPage controller={controller} />}
         </Suspense>

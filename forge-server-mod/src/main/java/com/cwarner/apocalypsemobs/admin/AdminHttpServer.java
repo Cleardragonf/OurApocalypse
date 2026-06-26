@@ -5,6 +5,7 @@ import com.cwarner.apocalypsemobs.config.ApocalypseConfig;
 import com.cwarner.apocalypsemobs.config.ConfigManager;
 import com.cwarner.apocalypsemobs.game.BlockPlacementLedger;
 import com.cwarner.apocalypsemobs.game.DifficultyCalculator;
+import com.cwarner.apocalypsemobs.game.EconomyWalletLedger;
 import com.cwarner.apocalypsemobs.game.WeightedEntityPicker;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -14,6 +15,7 @@ import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.server.level.ServerPlayer;
 import net.minecraftforge.registries.ForgeRegistries;
 
 import java.io.IOException;
@@ -64,6 +66,10 @@ public final class AdminHttpServer {
             httpServer.createContext("/api/registry/entities", this::handleRegistryEntities);
             httpServer.createContext("/api/registry/commands", this::handleRegistryCommands);
             httpServer.createContext("/api/registry/command-suggestions", this::handleCommandSuggestions);
+            httpServer.createContext("/api/economy/balance", this::handleEconomyBalance);
+            httpServer.createContext("/api/economy/add", exchange -> handleEconomyOperation(exchange, "add"));
+            httpServer.createContext("/api/economy/remove", exchange -> handleEconomyOperation(exchange, "remove"));
+            httpServer.createContext("/api/economy/set", exchange -> handleEconomyOperation(exchange, "set"));
             httpServer.start();
             ApocalypseMobs.LOGGER.info("Apocalypse Mobs admin REST API listening on http://{}:{}", api.host, api.port);
         } catch (Exception ex) {
@@ -254,6 +260,83 @@ public final class AdminHttpServer {
         }
     }
 
+    private void handleEconomyBalance(HttpExchange exchange) throws IOException {
+        if (preflight(exchange)) return;
+        if (!requireMethod(exchange, "GET")) return;
+        if (!authorized(exchange)) return;
+        String playerName = stringQuery(exchange.getRequestURI(), "player", "");
+        if (playerName.isBlank()) {
+            json(exchange, 400, Map.of("message", "Missing required player query parameter."));
+            return;
+        }
+        withOnlinePlayer(exchange, playerName, player -> EconomyWalletLedger.balance(player));
+    }
+
+    private void handleEconomyOperation(HttpExchange exchange, String operation) throws IOException {
+        if (preflight(exchange)) return;
+        if (!requireMethod(exchange, "POST")) return;
+        if (!authorized(exchange)) return;
+        EconomyOperationRequest request;
+        try {
+            request = GSON.fromJson(readBody(exchange), EconomyOperationRequest.class);
+        } catch (Exception ex) {
+            json(exchange, 400, Map.of("message", "Invalid economy request JSON."));
+            return;
+        }
+        if (request == null || request.player == null || request.player.isBlank()) {
+            json(exchange, 400, Map.of("message", "Missing required player."));
+            return;
+        }
+        if (Double.isNaN(request.value) || Double.isInfinite(request.value) || request.value < 0.0D) {
+            json(exchange, 400, Map.of("message", "Value must be a non-negative number."));
+            return;
+        }
+        withOnlinePlayer(exchange, request.player, player -> switch (operation) {
+            case "add" -> EconomyWalletLedger.add(player, request.value, "api:add");
+            case "remove" -> EconomyWalletLedger.remove(player, request.value, "api:remove");
+            case "set" -> EconomyWalletLedger.set(player, request.value, "api:set");
+            default -> EconomyWalletLedger.balance(player);
+        });
+    }
+
+    private void withOnlinePlayer(HttpExchange exchange, String playerName, EconomyPlayerAction action) throws IOException {
+        MinecraftServer server = minecraftServer;
+        if (server == null) {
+            json(exchange, 503, Map.of("message", "Minecraft server not available."));
+            return;
+        }
+
+        CompletableFuture<EconomyWalletLedger.WalletRecord> future = new CompletableFuture<>();
+        server.execute(() -> {
+            try {
+                var player = EconomyWalletLedger.findOnlinePlayer(server, playerName);
+                if (player.isEmpty()) {
+                    future.completeExceptionally(new IllegalArgumentException("Player is not online: " + playerName));
+                    return;
+                }
+                future.complete(action.apply(player.get()));
+            } catch (Exception ex) {
+                future.completeExceptionally(ex);
+            }
+        });
+
+        try {
+            EconomyWalletLedger.WalletRecord wallet = future.get(5, TimeUnit.SECONDS);
+            json(exchange, 200, Map.of(
+                    "ok", true,
+                    "player", wallet.name,
+                    "uuid", wallet.uuid,
+                    "balance", wallet.balance,
+                    "currencyName", ConfigManager.get().economy.currencyName,
+                    "updatedAt", wallet.updatedAt
+            ));
+        } catch (Exception ex) {
+            Throwable cause = ex.getCause() == null ? ex : ex.getCause();
+            int status = cause instanceof IllegalArgumentException ? 404 : 500;
+            json(exchange, status, Map.of("message", cause.getMessage() == null ? "Economy command failed." : cause.getMessage()));
+        }
+    }
+
     private Map<String, Object> buildStatus() {
         MinecraftServer server = minecraftServer;
         Map<String, Object> result = new LinkedHashMap<>();
@@ -362,5 +445,14 @@ public final class AdminHttpServer {
             result.put(pieces[0], pieces.length > 1 ? pieces[1] : "");
         }
         return result;
+    }
+
+    private interface EconomyPlayerAction {
+        EconomyWalletLedger.WalletRecord apply(ServerPlayer player);
+    }
+
+    private static class EconomyOperationRequest {
+        String player = "";
+        double value = 0.0D;
     }
 }

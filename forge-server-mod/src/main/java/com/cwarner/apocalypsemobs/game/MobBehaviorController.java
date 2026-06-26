@@ -32,6 +32,7 @@ public final class MobBehaviorController {
         ApocalypseConfig config = ConfigManager.get();
         if (!config.enabled || !config.behavior.enabled) return;
         if (monster.tickCount % config.behavior.mobTickInterval != 0) return;
+        if (!MobPropertyApplier.isProfiled(monster)) return;
         if (!allowsBehavior(monster, MobPropertyApplier.TARGET_PLAYERS_TAG)) return;
 
         int day = DifficultyCalculator.getDifficultyDay(level);
@@ -46,8 +47,12 @@ public final class MobBehaviorController {
         if (config.behavior.breakBlocks && allowsBehavior(monster, MobPropertyApplier.BREAK_BLOCKS_TAG) && day >= config.behavior.breakBlocksMinDay) {
             tryBreakBlockingBlock(level, monster, target, config);
         }
-        if (config.behavior.placeBlocks && allowsBehavior(monster, MobPropertyApplier.PLACE_BLOCKS_TAG) && day >= config.behavior.placeBlocksMinDay) {
-            tryPlaceStepBlock(level, monster, target, config, day);
+        if (config.behavior.placeBlocks && allowsBehavior(monster, MobPropertyApplier.PLACE_BLOCKS_TAG)) {
+            boolean canBridgeGaps = config.behavior.bridgeGaps && allowsBehavior(monster, MobPropertyApplier.BRIDGE_GAPS_TAG) && day >= config.behavior.bridgeMinDay;
+            boolean placedVerticalPole = target.blockPosition().getY() > monster.blockPosition().getY() + 1 && tryNerdPoleUp(level, monster, config, day);
+            if (!placedVerticalPole && day >= config.behavior.placeBlocksMinDay) {
+                tryPlaceStepBlock(level, monster, target, config, day, canBridgeGaps);
+            }
         }
         if (config.behavior.bridgeGaps && allowsBehavior(monster, MobPropertyApplier.BRIDGE_GAPS_TAG) && day >= config.behavior.bridgeMinDay) {
             tryBridgeGap(level, monster, target, config, day);
@@ -55,7 +60,7 @@ public final class MobBehaviorController {
     }
 
     private boolean allowsBehavior(Monster monster, String tag) {
-        return !monster.getPersistentData().contains(tag) || monster.getPersistentData().getBoolean(tag);
+        return monster.getPersistentData().contains(tag) && monster.getPersistentData().getBoolean(tag);
     }
 
     private ServerPlayer findNearestTarget(ServerLevel level, BlockPos source, double range) {
@@ -90,30 +95,55 @@ public final class MobBehaviorController {
         return true;
     }
 
-    private void tryPlaceStepBlock(ServerLevel level, Monster monster, ServerPlayer target, ApocalypseConfig config, int day) {
-        if (target.blockPosition().getY() <= monster.blockPosition().getY() + 1) return;
+    private boolean tryPlaceStepBlock(ServerLevel level, Monster monster, ServerPlayer target, ApocalypseConfig config, int day, boolean canBridgeGaps) {
+        if (canBridgeGaps && tryPlaceForwardPathBlock(level, monster, target, config, day, "PATH_TO_TARGET")) return true;
+
+        if (target.blockPosition().getY() <= monster.blockPosition().getY() + 1) return false;
+
         Direction direction = horizontalDirectionToward(monster.blockPosition(), target.blockPosition());
         BlockPos front = monster.blockPosition().relative(direction);
         BlockPos frontBelow = front.below();
-        if (!level.isLoaded(front) || isProtectedPosition(level, front, config)) return;
-        if (!level.isEmptyBlock(front)) return;
-        if (level.getBlockState(frontBelow).isAir()) return;
-        placeTracked(level, front, getPlacementBlock(config, day), "STEP_UP", monster);
+        if (!level.isLoaded(front) || isProtectedPosition(level, front, config)) return false;
+        if (!level.isEmptyBlock(front)) return false;
+        if (level.getBlockState(frontBelow).isAir()) return false;
+        return placeTracked(level, front, getPlacementBlock(config, day), "STEP_UP", monster);
+    }
+
+    private boolean tryNerdPoleUp(ServerLevel level, Monster monster, ApocalypseConfig config, int day) {
+        BlockPos feet = monster.blockPosition();
+        BlockPos head = feet.above();
+        BlockPos destinationHead = head.above();
+        if (!level.isLoaded(feet) || isProtectedPosition(level, feet, config)) return false;
+        if (!level.isEmptyBlock(feet) || !level.isEmptyBlock(head) || !level.isEmptyBlock(destinationHead)) return false;
+
+        if (placeTracked(level, feet, getPlacementBlock(config, day), "NERD_POLE_UP", monster)) {
+            monster.teleportTo(monster.getX(), monster.getY() + 1.0D, monster.getZ());
+            monster.fallDistance = 0.0F;
+            return true;
+        }
+        return false;
     }
 
     private void tryBridgeGap(ServerLevel level, Monster monster, ServerPlayer target, ApocalypseConfig config, int day) {
-        Direction direction = horizontalDirectionToward(monster.blockPosition(), target.blockPosition());
-        BlockPos frontBelow = monster.blockPosition().relative(direction).below();
-        if (!level.isLoaded(frontBelow) || isProtectedPosition(level, frontBelow, config)) return;
-        if (!level.isEmptyBlock(frontBelow)) return;
-        placeTracked(level, frontBelow, getPlacementBlock(config, day), "BRIDGE_GAP", monster);
+        tryPlaceForwardPathBlock(level, monster, target, config, day, "BRIDGE_GAP");
     }
 
-    private void placeTracked(ServerLevel level, BlockPos pos, BlockState placedState, String reason, Monster monster) {
+    private boolean tryPlaceForwardPathBlock(ServerLevel level, Monster monster, ServerPlayer target, ApocalypseConfig config, int day, String reason) {
+        Direction direction = horizontalDirectionToward(monster.blockPosition(), target.blockPosition());
+        BlockPos frontBelow = monster.blockPosition().relative(direction).below();
+        BlockPos front = frontBelow.above();
+        if (!level.isLoaded(frontBelow) || !level.isLoaded(front) || isProtectedPosition(level, frontBelow, config)) return false;
+        if (!level.isEmptyBlock(frontBelow) || !level.isEmptyBlock(front)) return false;
+        return placeTracked(level, frontBelow, getPlacementBlock(config, day), reason, monster);
+    }
+
+    private boolean placeTracked(ServerLevel level, BlockPos pos, BlockState placedState, String reason, Monster monster) {
         BlockState previousState = level.getBlockState(pos);
         if (level.setBlockAndUpdate(pos, placedState)) {
             BlockPlacementLedger.recordPlacement(level, pos, previousState, placedState, reason, monster);
+            return true;
         }
+        return false;
     }
 
     private boolean isProtectedPosition(ServerLevel level, BlockPos pos, ApocalypseConfig config) {

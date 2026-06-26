@@ -1,0 +1,12 @@
+{
+  "wallets": {
+    "380df991-f603-344c-a090-369bad2a924a": {
+      "uuid": "380df991-f603-344c-a090-369bad2a924a",
+      "name": "Dev",
+      "balance": 0.0,
+      "createdAt": "2026-06-26T00:31:31.473615400Z",
+      "updatedAt": "2026-06-26T03:22:20.673480300Z",
+      "lastReason": "death-cost"
+    }
+  }
+}

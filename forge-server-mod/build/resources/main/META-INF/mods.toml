@@ -5,7 +5,7 @@ issueTrackerURL=""
 
 [[mods]]
 modId="apocalypse_mobs"
-version="1.7.0"
+version="1.8.0"
 displayName="Apocalypse Mobs"
 authors="Christopher Warner"
 description='''Server-side hostile mob wave director with day-based difficulty, mob griefing, drops, REST live config, and mob-placed block rollback.'''

@@ -3,6 +3,9 @@ package com.cwarner.apocalypsemobs;
 import com.cwarner.apocalypsemobs.admin.AdminHttpServer;
 import com.cwarner.apocalypsemobs.config.ConfigManager;
 import com.cwarner.apocalypsemobs.game.BlockPlacementLedger;
+import com.cwarner.apocalypsemobs.game.EconomyCommands;
+import com.cwarner.apocalypsemobs.game.EconomyDeathHandler;
+import com.cwarner.apocalypsemobs.game.EconomyWalletLedger;
 import com.cwarner.apocalypsemobs.game.MobBehaviorController;
 import com.cwarner.apocalypsemobs.game.MobDropHandler;
 import com.cwarner.apocalypsemobs.game.SpecialMobGoalController;
@@ -25,7 +28,10 @@ public final class ApocalypseMobs {
     public ApocalypseMobs() {
         ConfigManager.loadOrCreate();
         BlockPlacementLedger.loadOrCreate();
+        EconomyWalletLedger.loadOrCreate();
         MinecraftForge.EVENT_BUS.register(this);
+        MinecraftForge.EVENT_BUS.register(new EconomyCommands());
+        MinecraftForge.EVENT_BUS.register(new EconomyDeathHandler());
         MinecraftForge.EVENT_BUS.register(new WaveDirector());
         MinecraftForge.EVENT_BUS.register(new MobBehaviorController());
         MinecraftForge.EVENT_BUS.register(new MobDropHandler());
@@ -36,6 +42,7 @@ public final class ApocalypseMobs {
     @SubscribeEvent
     public void onServerStarted(ServerStartedEvent event) {
         BlockPlacementLedger.loadOrCreate();
+        EconomyWalletLedger.loadOrCreate();
         adminHttpServer.start(event.getServer());
         if (ConfigManager.get().cleanup.rollbackOnServerStart) {
             event.getServer().execute(() -> BlockPlacementLedger.rollback(event.getServer(), ConfigManager.get().cleanup.maxRollbackPerRequest));
@@ -46,5 +53,6 @@ public final class ApocalypseMobs {
     public void onServerStopping(ServerStoppingEvent event) {
         adminHttpServer.stop();
         BlockPlacementLedger.saveQuietly();
+        EconomyWalletLedger.saveQuietly();
     }
 }
